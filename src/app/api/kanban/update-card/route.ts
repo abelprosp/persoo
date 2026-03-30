@@ -31,6 +31,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
   }
 
+  const {
+    data: profile,
+  } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const authorName = profile?.full_name?.trim() || user.email?.split("@")[0] || "Utilizador";
+
   if (variant === "lead") {
     const update = {
       full_name: String(payload.full_name ?? "").trim(),
@@ -38,6 +43,7 @@ export async function POST(req: Request) {
       email: String(payload.email ?? "").trim() || null,
       phone: String(payload.phone ?? "").trim() || null,
       owner_name: String(payload.owner_name ?? "").trim() || null,
+      last_activity_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     if (!update.full_name) {
@@ -49,6 +55,16 @@ export async function POST(req: Request) {
       .eq("id", id)
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await supabase.from("card_activities").insert({
+      workspace_id: active.id,
+      entity_type: "lead",
+      entity_id: id,
+      kind: "edit",
+      title: "Lead atualizado",
+      description: "Campos principais do lead foram editados.",
+      author_name: authorName,
+    });
   } else if (variant === "deal") {
     const rawValue = String(payload.value ?? "").trim();
     const parsed = rawValue === "" ? null : Number(rawValue.replace(",", "."));
@@ -62,6 +78,7 @@ export async function POST(req: Request) {
       phone: String(payload.phone ?? "").trim() || null,
       assignee_name: String(payload.assignee_name ?? "").trim() || null,
       value: parsed,
+      last_updated: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     if (!update.title) {
@@ -73,6 +90,16 @@ export async function POST(req: Request) {
       .eq("id", id)
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await supabase.from("card_activities").insert({
+      workspace_id: active.id,
+      entity_type: "deal",
+      entity_id: id,
+      kind: "edit",
+      title: "Negócio atualizado",
+      description: "Campos principais do negócio foram editados.",
+      author_name: authorName,
+    });
   } else {
     const dueRaw = String(payload.due_at ?? "").trim();
     const due_at = dueRaw === "" ? null : new Date(dueRaw).toISOString();
@@ -95,6 +122,16 @@ export async function POST(req: Request) {
       .eq("id", id)
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await supabase.from("card_activities").insert({
+      workspace_id: active.id,
+      entity_type: "task",
+      entity_id: id,
+      kind: "edit",
+      title: "Tarefa atualizada",
+      description: "Campos principais da tarefa foram editados.",
+      author_name: authorName,
+    });
   }
 
   return NextResponse.json({ ok: true });

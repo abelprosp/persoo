@@ -83,7 +83,10 @@ export function TaskKanbanCard({
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
-      onClick={() => setOpenDetails(true)}
+      onClick={() => {
+        if (open || openDetails) return;
+        setOpenDetails(true);
+      }}
     >
       <div className="mb-1 flex items-center justify-end">
         <Button

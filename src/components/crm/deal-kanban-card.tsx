@@ -81,7 +81,10 @@ export function DealKanbanCard({
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
-      onClick={() => setOpenDetails(true)}
+      onClick={() => {
+        if (open || openDetails) return;
+        setOpenDetails(true);
+      }}
     >
       <div className="flex gap-2">
         <Avatar className="size-9 rounded-md">
