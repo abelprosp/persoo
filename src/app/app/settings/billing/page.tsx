@@ -9,8 +9,6 @@ import {
   subscriptionStatusLabelPt,
   type WorkspaceSubscriptionRow,
 } from "@/lib/subscriptions";
-import { isStripeConfigured } from "@/lib/stripe";
-import { resolveStripePriceId } from "@/lib/workspace-billing";
 import {
   linkButtonOutlineSm,
   linkButtonSecondarySm,
@@ -26,18 +24,10 @@ import { cn } from "@/lib/utils";
 import { BillingStripeClient } from "./billing-stripe-client";
 
 export default async function BillingSettingsPage({
-  searchParams,
+  searchParams: _searchParams,
 }: {
   searchParams: Promise<{ checkout?: string }>;
 }) {
-  const sp = await searchParams;
-  const checkoutFlash =
-    sp.checkout === "success"
-      ? "Pagamento recebido. Se o estado ainda não mudou, aguarde alguns segundos (webhook Stripe)."
-      : sp.checkout === "cancel"
-        ? "Checkout cancelado — pode voltar a tentar quando quiser."
-        : null;
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,9 +48,7 @@ export default async function BillingSettingsPage({
       status,
       trial_ends_at,
       current_period_end,
-      stripe_customer_id,
-      stripe_subscription_id,
-      subscription_plans ( slug, name, price_monthly_cents, trial_days, stripe_price_id )
+      subscription_plans ( slug, name, price_monthly_cents, trial_days )
     `
     )
     .eq("workspace_id", ws.id)
@@ -72,33 +60,9 @@ export default async function BillingSettingsPage({
         name: string;
         price_monthly_cents: number;
         trial_days: number;
-        stripe_price_id: string | null;
       }
     | null
     | undefined;
-
-  const { data: proPlanRow } = await supabase
-    .from("subscription_plans")
-    .select("id, slug, name, stripe_price_id")
-    .eq("slug", "pro")
-    .eq("active", true)
-    .maybeSingle();
-
-  const priceConfigured = proPlanRow
-    ? Boolean(
-        resolveStripePriceId(
-          proPlanRow as { id: string; slug: string; name: string; stripe_price_id: string | null }
-        )
-      )
-    : false;
-
-  const webhookReady = Boolean(
-    process.env.STRIPE_WEBHOOK_SECRET?.trim() &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  );
-
-  const stripeReady =
-    isStripeConfigured() && priceConfigured && webhookReady;
 
   const sub = (subRow as WorkspaceSubscriptionRow | null) ?? null;
   const superUser = await isSuperAdmin(supabase, user);
@@ -122,8 +86,6 @@ export default async function BillingSettingsPage({
     myMember?.role === "owner" ||
     myMember?.role === "admin";
 
-  const hasStripeCustomer = Boolean(subRow?.stripe_customer_id?.trim());
-
   const showSubscribeCta = Boolean(
     canDiscussPlan &&
       subRow &&
@@ -140,25 +102,9 @@ export default async function BillingSettingsPage({
         de espaço no menu superior para ver outro.
       </p>
 
-      {checkoutFlash ? (
-        <div
-          className={cn(
-            "rounded-lg border px-4 py-3 text-sm",
-            sp.checkout === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-              : "border-border bg-muted/50 text-muted-foreground"
-          )}
-          role="status"
-        >
-          {checkoutFlash}
-        </div>
-      ) : null}
-
       {canDiscussPlan ? (
         <BillingStripeClient
-          workspaceId={ws.id}
-          stripeReady={stripeReady}
-          hasStripeCustomer={hasStripeCustomer}
+          workspaceName={ws.name}
           showSubscribeCta={showSubscribeCta}
         />
       ) : null}
@@ -204,14 +150,6 @@ export default async function BillingSettingsPage({
                   </dd>
                 </div>
               ) : null}
-              {subRow.stripe_subscription_id ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Stripe</dt>
-                  <dd className="font-mono text-xs text-muted-foreground">
-                    Subscrição: {subRow.stripe_subscription_id}
-                  </dd>
-                </div>
-              ) : null}
               {subRow.trial_ends_at ? (
                 <div>
                   <dt className="text-muted-foreground">Trial até</dt>
@@ -253,10 +191,10 @@ export default async function BillingSettingsPage({
             </p>
           )}
 
-          {subRow?.status === "past_due" && hasStripeCustomer ? (
+          {subRow?.status === "past_due" ? (
             <p className="text-sm text-amber-900/90">
-              O pagamento falhou ou está em atraso. Use{" "}
-              <strong>Gerir faturação</strong> acima para atualizar o cartão.
+              O pagamento está em atraso. Contacte o suporte para regularização
+              manual do plano.
             </p>
           ) : null}
 

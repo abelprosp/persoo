@@ -1,12 +1,22 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { formatBRL, relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { DealKanbanCardVisibility } from "@/lib/kanban-schema";
-import { FileText, ListChecks, MessageSquare, Plus } from "lucide-react";
+import { FileText, ListChecks, MessageSquare, Pencil } from "lucide-react";
 
 export type DealRow = {
   id: string;
@@ -29,6 +39,42 @@ export function DealKanbanCard({
   customFields: CustomFieldDef[];
   visibility: DealKanbanCardVisibility;
 }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [title, setTitle] = useState(item.title ?? "");
+  const [organizationName, setOrganizationName] = useState(
+    item.organization_name ?? ""
+  );
+  const [value, setValue] = useState(item.value != null ? String(item.value) : "");
+  const [email, setEmail] = useState(item.email ?? "");
+  const [phone, setPhone] = useState(item.phone ?? "");
+  const [assigneeName, setAssigneeName] = useState(item.assignee_name ?? "");
+
+  async function onSave() {
+    setPending(true);
+    const res = await fetch("/api/kanban/update-card", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        variant: "deal",
+        id: item.id,
+        payload: {
+          title,
+          organization_name: organizationName,
+          value,
+          email,
+          phone,
+          assignee_name: assigneeName,
+        },
+      }),
+    });
+    setPending(false);
+    if (!res.ok) return;
+    setOpen(false);
+    router.refresh();
+  }
+
   const showCustom = visibility.custom && customFields.length > 0;
   return (
     <div className="rounded-lg border border-border/80 bg-white p-3 shadow-sm">
@@ -88,10 +134,39 @@ export function DealKanbanCard({
             <MessageSquare className="size-3.5" />0
           </span>
         </div>
-        <Button variant="ghost" size="icon" className="size-7" type="button">
-          <Plus className="size-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <Pencil className="size-4" />
         </Button>
       </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar negócio</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" />
+            <Input value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Organização" />
+            <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Valor" />
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" />
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" />
+            <Input value={assigneeName} onChange={(e) => setAssigneeName(e.target.value)} placeholder="Responsável" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void onSave()} disabled={pending}>
+              {pending ? "A guardar..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

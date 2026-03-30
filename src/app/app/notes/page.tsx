@@ -9,14 +9,12 @@ import {
 import { DataTableFooter } from "@/components/crm/table-footer";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/format";
-import { MoreHorizontal } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
+import { NoteCardActions } from "@/components/crm/note-card-actions";
 import {
   sanitizeIlikeTerm,
-  parseHideSet,
   pickSortId,
   resolveSortOption,
 } from "@/lib/list-toolbar-url";
@@ -51,7 +49,6 @@ export default async function NotesPage({
 }) {
   const sp = await searchParams;
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
-  const hide = parseHideSet(sp.hide);
   const sortId = pickSortId(
     NOTES_SORT,
     typeof sp.sort === "string" ? sp.sort : undefined,
@@ -85,15 +82,6 @@ export default async function NotesPage({
   const { data: rows } = await query;
   const list = rows ?? [];
 
-  const vis = (id: string) => !hide.has(id);
-
-  const toolbarColumns = [
-    { id: "title", label: "Título" },
-    { id: "content", label: "Conteúdo" },
-    { id: "author", label: "Autor" },
-    { id: "updated", label: "Data" },
-  ];
-
   return (
     <div className="space-y-4">
       <PageHeader
@@ -111,7 +99,7 @@ export default async function NotesPage({
           <PageToolbar
             variant="cards"
             sortOptions={NOTES_SORT}
-            columns={toolbarColumns}
+            columns={[]}
             defaultSortId="updated_desc"
             searchPlaceholder="Título, texto ou autor…"
           />
@@ -129,42 +117,26 @@ export default async function NotesPage({
               className="border-border/80 bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                {vis("title") ? (
-                  <h3 className="line-clamp-2 font-semibold leading-snug">
-                    {n.title}
-                  </h3>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-                <Button variant="ghost" size="icon" className="size-8 shrink-0">
-                  <MoreHorizontal className="size-4" />
-                </Button>
+                <h3 className="line-clamp-2 font-semibold leading-snug">
+                  {n.title}
+                </h3>
+                <NoteCardActions note={n} />
               </CardHeader>
               <CardContent>
-                {vis("content") ? (
-                  <p className="line-clamp-4 text-sm text-muted-foreground">
-                    {n.content ?? "—"}
-                  </p>
-                ) : null}
-                {vis("author") || vis("updated") ? (
-                  <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                    {vis("author") ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="size-6">
-                          <AvatarFallback className="text-[9px]">
-                            {n.author_name?.charAt(0) ?? "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        {n.author_name ?? "—"}
-                      </div>
-                    ) : (
-                      <span />
-                    )}
-                    {vis("updated") ? (
-                      <span>{relativeTime(n.updated_at)}</span>
-                    ) : null}
+                <p className="line-clamp-4 text-sm text-muted-foreground">
+                  {n.content ?? "—"}
+                </p>
+                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="size-6">
+                      <AvatarFallback className="text-[9px]">
+                        {n.author_name?.charAt(0) ?? "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {n.author_name ?? "—"}
                   </div>
-                ) : null}
+                  <span>{relativeTime(n.updated_at)}</span>
+                </div>
               </CardContent>
             </Card>
           ))

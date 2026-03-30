@@ -119,7 +119,7 @@ export default function AiSettingsPage() {
               <Label htmlFor="desc">Descrição do negócio</Label>
               <Textarea
                 id="desc"
-                placeholder="Somos uma empresa de logística com 40 camiões, foco em carga paletizada e tracking em tempo real…"
+                placeholder="Somos uma empresa de logística com 40 camiões, foco em carga paletizada e rastreamento em tempo real."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}

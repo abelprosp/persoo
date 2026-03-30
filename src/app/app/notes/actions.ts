@@ -57,3 +57,63 @@ export async function createNote(formData: FormData): Promise<ActionResult> {
   revalidatePath("/app/notes");
   return { ok: true };
 }
+
+export async function updateNote(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado" };
+
+  const { active } = await getWorkspaceContext(supabase, user.id);
+  if (!active) return { error: "Espaço de trabalho não encontrado" };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const content = String(formData.get("content") ?? "").trim() || null;
+  const author_name = String(formData.get("author_name") ?? "").trim() || null;
+
+  if (!id) return { error: "Nota inválida" };
+  if (!title) return { error: "Indique o título da nota" };
+
+  const { error } = await supabase
+    .from("notes")
+    .update({
+      title,
+      content,
+      author_name,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("workspace_id", active.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/notes");
+  return { ok: true };
+}
+
+export async function deleteNote(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado" };
+
+  const { active } = await getWorkspaceContext(supabase, user.id);
+  if (!active) return { error: "Espaço de trabalho não encontrado" };
+
+  const noteId = String(id ?? "").trim();
+  if (!noteId) return { error: "Nota inválida" };
+
+  const { error } = await supabase
+    .from("notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("workspace_id", active.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/notes");
+  return { ok: true };
+}

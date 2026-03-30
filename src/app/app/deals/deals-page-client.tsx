@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ export function DealsPageClient({
   fieldLabels,
   cardVisibility,
 }: Props) {
+  const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [defaultStage, setDefaultStage] = useState(firstCreateStageId);
 
@@ -50,6 +52,26 @@ export function DealsPageClient({
   function openCreate(columnId: string) {
     setDefaultStage(columnId);
     setCreateOpen(true);
+  }
+
+  async function moveCard(
+    itemId: string,
+    fromColumn: string,
+    toColumn: string
+  ): Promise<boolean> {
+    const res = await fetch("/api/kanban/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        variant: "deal",
+        id: itemId,
+        fromColumn,
+        toColumn,
+      }),
+    });
+    if (!res.ok) return false;
+    router.refresh();
+    return true;
   }
 
   return (
@@ -109,6 +131,7 @@ export function DealsPageClient({
         customFields={customFields}
         cardVisibility={cardVisibility}
         onAddClick={openCreate}
+        onMoveCard={moveCard}
       />
     </div>
   );

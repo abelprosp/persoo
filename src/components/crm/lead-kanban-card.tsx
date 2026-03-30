@@ -1,17 +1,27 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { LeadKanbanCardVisibility } from "@/lib/kanban-schema";
 import {
   AtSign,
+  Pencil,
   FileText,
   ListChecks,
   MessageSquare,
-  Plus,
 } from "lucide-react";
 
 export type LeadRow = {
@@ -34,6 +44,38 @@ export function LeadKanbanCard({
   customFields: CustomFieldDef[];
   visibility: LeadKanbanCardVisibility;
 }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [fullName, setFullName] = useState(item.full_name ?? "");
+  const [company, setCompany] = useState(item.company ?? "");
+  const [email, setEmail] = useState(item.email ?? "");
+  const [phone, setPhone] = useState(item.phone ?? "");
+  const [ownerName, setOwnerName] = useState(item.owner_name ?? "");
+
+  async function onSave() {
+    setPending(true);
+    const res = await fetch("/api/kanban/update-card", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        variant: "lead",
+        id: item.id,
+        payload: {
+          full_name: fullName,
+          company,
+          email,
+          phone,
+          owner_name: ownerName,
+        },
+      }),
+    });
+    setPending(false);
+    if (!res.ok) return;
+    setOpen(false);
+    router.refresh();
+  }
+
   const initial = item.full_name?.charAt(0) ?? "?";
   const showCustom = visibility.custom && customFields.length > 0;
   return (
@@ -87,10 +129,38 @@ export function LeadKanbanCard({
           <ListChecks className="size-3.5" />
           <MessageSquare className="size-3.5" />
         </div>
-        <Button variant="ghost" size="icon" className="size-7" type="button">
-          <Plus className="size-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <Pencil className="size-4" />
         </Button>
       </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar lead</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome" />
+            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Empresa" />
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" />
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" />
+            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Responsável" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void onSave()} disabled={pending}>
+              {pending ? "A guardar..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

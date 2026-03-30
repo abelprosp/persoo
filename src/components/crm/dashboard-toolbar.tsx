@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { CalendarDays, Pencil, RefreshCw, User } from "lucide-react";
 import { SeedDemoButton } from "@/components/crm/seed-demo-button";
+import { ClearDemoButton } from "@/components/crm/clear-demo-button";
 import { DashboardEditDialog } from "@/components/crm/dashboard-edit-dialog";
 import type { DashboardPrefs } from "@/lib/dashboard-prefs";
 import type { TeamScope } from "@/lib/dashboard-prefs";
@@ -42,6 +43,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
           <SeedDemoButton />
+          <ClearDemoButton />
           <Button
             variant="outline"
             size="sm"

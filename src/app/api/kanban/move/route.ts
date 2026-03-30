@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspace";
+
+type Variant = "lead" | "deal" | "task";
+
+export async function POST(req: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  const { active } = await getWorkspaceContext(supabase, user.id);
+  if (!active) {
+    return NextResponse.json(
+      { error: "Espaço de trabalho não encontrado" },
+      { status: 404 }
+    );
+  }
+
+  const body = (await req.json().catch(() => ({}))) as {
+    variant?: Variant;
+    id?: string;
+    toColumn?: string;
+  };
+
+  const variant = body.variant;
+  const id = String(body.id ?? "").trim();
+  const toColumn = String(body.toColumn ?? "").trim();
+  if (!variant || !id || !toColumn) {
+    return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
+  }
+
+  if (variant === "lead") {
+    const { error } = await supabase
+      .from("leads")
+      .update({ status: toColumn, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("workspace_id", active.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  } else if (variant === "deal") {
+    const { error } = await supabase
+      .from("deals")
+      .update({ stage: toColumn, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("workspace_id", active.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  } else {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: toColumn, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("workspace_id", active.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
