@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import {
   DEAL_KANBAN_CARD_FIELD_KEYS,
   LEAD_KANBAN_CARD_FIELD_KEYS,
+  TASK_KANBAN_CARD_FIELD_KEYS,
   slugifyKanbanId,
 } from "@/lib/kanban-schema";
 
@@ -69,8 +70,18 @@ function sanitizeDealCardFields(
   return out;
 }
 
+function sanitizeTaskCardFields(
+  raw: Record<string, boolean> | undefined
+): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  for (const k of TASK_KANBAN_CARD_FIELD_KEYS) {
+    out[k] = typeof raw?.[k] === "boolean" ? raw[k]! : true;
+  }
+  return out;
+}
+
 export async function saveKanbanCustomize(data: {
-  board: "leads" | "deals";
+  board: "leads" | "deals" | "tasks";
   columns: { id: string; title: string }[];
   cardFields: Record<string, boolean>;
 }): Promise<SaveKanbanResult> {
@@ -102,9 +113,12 @@ export async function saveKanbanCustomize(data: {
   if (data.board === "leads") {
     nextKanban.leads = columns;
     nextKanban.leadCardFields = sanitizeLeadCardFields(data.cardFields);
-  } else {
+  } else if (data.board === "deals") {
     nextKanban.deals = columns;
     nextKanban.dealCardFields = sanitizeDealCardFields(data.cardFields);
+  } else {
+    nextKanban.tasks = columns;
+    nextKanban.taskCardFields = sanitizeTaskCardFields(data.cardFields);
   }
 
   const nextSchema = {
@@ -124,6 +138,7 @@ export async function saveKanbanCustomize(data: {
 
   revalidatePath("/app/leads");
   revalidatePath("/app/deals");
+  revalidatePath("/app/tasks");
   revalidatePath("/app", "layout");
   return { ok: true };
 }

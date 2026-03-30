@@ -5,6 +5,7 @@ import {
   customDataFromForm,
   getCustomFields,
 } from "@/lib/ai-schema";
+import { allowedTaskStatusSet, firstTaskStatusId } from "@/lib/kanban-schema";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 
@@ -29,14 +30,11 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
     return { error: "Indique o título da tarefa" };
   }
 
-  const allowedStatus = new Set([
-    "todo",
-    "in_progress",
-    "done",
-    "backlog",
-  ]);
-  const rawStatus = String(formData.get("status") ?? "todo").trim();
-  const status = allowedStatus.has(rawStatus) ? rawStatus : "todo";
+  const schema = active.ai_schema as Record<string, unknown> | null;
+  const allowedStatus = allowedTaskStatusSet(schema);
+  const fallbackStatus = firstTaskStatusId(schema);
+  const rawStatus = String(formData.get("status") ?? fallbackStatus).trim();
+  const status = allowedStatus.has(rawStatus) ? rawStatus : fallbackStatus;
 
   const allowedPri = new Set(["low", "medium", "high"]);
   const rawPri = String(formData.get("priority") ?? "medium").trim();
@@ -51,7 +49,6 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
   const assignee_name =
     String(formData.get("assignee_name") ?? "").trim() || null;
 
-  const schema = active.ai_schema as Record<string, unknown> | null;
   const extraFields = getCustomFields(schema, "tasks");
   const custom_data = customDataFromForm(formData, extraFields);
 

@@ -8,6 +8,7 @@ import type { CustomFieldDef } from "@/lib/ai-schema";
 import type {
   DealKanbanCardVisibility,
   LeadKanbanCardVisibility,
+  TaskKanbanCardVisibility,
 } from "@/lib/kanban-schema";
 import {
   LeadKanbanCard,
@@ -17,6 +18,10 @@ import {
   DealKanbanCard,
   type DealRow,
 } from "@/components/crm/deal-kanban-card";
+import {
+  TaskKanbanCard,
+  type TaskRow,
+} from "@/components/crm/task-kanban-card";
 
 export type KanbanColumnDef = {
   id: string;
@@ -43,7 +48,13 @@ type DealProps = BaseProps & {
   cardVisibility: DealKanbanCardVisibility;
 };
 
-type Props = LeadProps | DealProps;
+type TaskProps = BaseProps & {
+  variant: "task";
+  customFields: CustomFieldDef[];
+  cardVisibility: TaskKanbanCardVisibility;
+};
+
+type Props = LeadProps | DealProps | TaskProps;
 
 export function KanbanBoard(props: Props) {
   const { columns, itemsByColumn, onAddClick, variant } = props;
@@ -91,9 +102,15 @@ export function KanbanBoard(props: Props) {
                           customFields={customFields}
                           visibility={props.cardVisibility}
                         />
-                      ) : (
+                      ) : variant === "deal" ? (
                         <DealKanbanCard
                           item={row as DealRow}
+                          customFields={customFields}
+                          visibility={props.cardVisibility}
+                        />
+                      ) : (
+                        <TaskKanbanCard
+                          item={row as TaskRow}
                           customFields={customFields}
                           visibility={props.cardVisibility}
                         />

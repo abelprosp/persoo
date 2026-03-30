@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,21 +25,41 @@ export type TaskFormFieldLabels = {
   assignee_name?: string;
 };
 
+export type TaskStatusOption = { id: string; label: string };
+
 type Props = {
+  statusOptions: TaskStatusOption[];
   customFields: CustomFieldDef[];
   fieldLabels?: TaskFormFieldLabels;
   dialogTitle?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  defaultStatus?: string;
+  showTrigger?: boolean;
 };
 
 export function CreateTaskDialog({
+  statusOptions,
   customFields,
   fieldLabels,
   dialogTitle = "Nova tarefa",
+  open: controlledOpen,
+  onOpenChange,
+  defaultStatus = "todo",
+  showTrigger = true,
 }: Props) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? Boolean(controlledOpen) : internalOpen;
+  function setOpen(next: boolean) {
+    if (controlled) onOpenChange?.(next);
+    else setInternalOpen(next);
+  }
+
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState(defaultStatus);
 
   const lb = {
     title: fieldLabels?.title ?? "Título",
@@ -48,6 +68,13 @@ export function CreateTaskDialog({
     due_at: fieldLabels?.due_at ?? "Prazo",
     assignee_name: fieldLabels?.assignee_name ?? "Atribuído",
   };
+
+  useEffect(() => {
+    if (open) {
+      setStatus(defaultStatus);
+      setError(null);
+    }
+  }, [open, defaultStatus]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,19 +89,22 @@ export function CreateTaskDialog({
     }
     setOpen(false);
     e.currentTarget.reset();
+    setStatus(defaultStatus);
     router.refresh();
   }
 
   return (
     <>
-      <Button
-        type="button"
-        className="bg-zinc-900 text-white hover:bg-zinc-800"
-        onClick={() => setOpen(true)}
-      >
-        <Plus className="mr-2 size-4" />
-        Criar
-      </Button>
+      {showTrigger && (
+        <Button
+          type="button"
+          className="bg-zinc-900 text-white hover:bg-zinc-800"
+          onClick={() => setOpen(true)}
+        >
+          <Plus className="mr-2 size-4" />
+          Criar
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={onSubmit}>
@@ -96,16 +126,18 @@ export function CreateTaskDialog({
                 <select
                   id="task-status"
                   name="status"
-                  defaultValue="todo"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
                   className={cn(
                     "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none",
                     "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   )}
                 >
-                  <option value="todo">A fazer</option>
-                  <option value="in_progress">Em progresso</option>
-                  <option value="done">Concluído</option>
-                  <option value="backlog">Backlog</option>
+                  {statusOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">

@@ -19,11 +19,14 @@ import { saveKanbanCustomize } from "@/app/app/kanban/actions";
 import {
   DEAL_KANBAN_CARD_FIELD_KEYS,
   LEAD_KANBAN_CARD_FIELD_KEYS,
+  TASK_KANBAN_CARD_FIELD_KEYS,
   slugifyKanbanId,
   type DealKanbanCardFieldKey,
   type DealKanbanCardVisibility,
   type LeadKanbanCardFieldKey,
   type LeadKanbanCardVisibility,
+  type TaskKanbanCardFieldKey,
+  type TaskKanbanCardVisibility,
 } from "@/lib/kanban-schema";
 
 type LeadLabels = {
@@ -42,6 +45,13 @@ type DealLabels = {
   assignee_name: string;
 };
 
+type TaskLabels = {
+  status: string;
+  priority: string;
+  due_at: string;
+  assignee_name: string;
+};
+
 export type KanbanCustomizeLeadProps = {
   board: "leads";
   initialColumns: { id: string; title: string }[];
@@ -56,9 +66,17 @@ export type KanbanCustomizeDealProps = {
   fieldLabels: DealLabels;
 };
 
+export type KanbanCustomizeTaskProps = {
+  board: "tasks";
+  initialColumns: { id: string; title: string }[];
+  cardVisibility: TaskKanbanCardVisibility;
+  fieldLabels: TaskLabels;
+};
+
 export type KanbanCustomizeProps =
   | KanbanCustomizeLeadProps
-  | KanbanCustomizeDealProps;
+  | KanbanCustomizeDealProps
+  | KanbanCustomizeTaskProps;
 
 type DialogProps = KanbanCustomizeProps & {
   open: boolean;
@@ -111,6 +129,28 @@ function dealCheckboxLabel(
   }
 }
 
+function taskCheckboxLabel(
+  key: TaskKanbanCardFieldKey,
+  fieldLabels: TaskLabels
+): string {
+  switch (key) {
+    case "status":
+      return fieldLabels.status;
+    case "priority":
+      return fieldLabels.priority;
+    case "due_at":
+      return fieldLabels.due_at;
+    case "assignee":
+      return fieldLabels.assignee_name;
+    case "updated_at":
+      return "Última alteração";
+    case "custom":
+      return "Campos personalizados";
+    default:
+      return key;
+  }
+}
+
 export function KanbanCustomizeDialog({
   open,
   onOpenChange,
@@ -123,6 +163,9 @@ export function KanbanCustomizeDialog({
     null
   );
   const [dealFields, setDealFields] = useState<DealKanbanCardVisibility | null>(
+    null
+  );
+  const [taskFields, setTaskFields] = useState<TaskKanbanCardVisibility | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
@@ -140,9 +183,15 @@ export function KanbanCustomizeDialog({
     if (p.board === "leads") {
       setLeadFields({ ...p.cardVisibility });
       setDealFields(null);
-    } else {
+      setTaskFields(null);
+    } else if (p.board === "deals") {
       setDealFields({ ...p.cardVisibility });
       setLeadFields(null);
+      setTaskFields(null);
+    } else {
+      setTaskFields({ ...p.cardVisibility });
+      setLeadFields(null);
+      setDealFields(null);
     }
   }, [open]);
 
@@ -185,7 +234,9 @@ export function KanbanCustomizeDialog({
     const cardFields =
       props.board === "leads"
         ? { ...(leadFields ?? props.cardVisibility) }
-        : { ...(dealFields ?? props.cardVisibility) };
+        : props.board === "deals"
+          ? { ...(dealFields ?? props.cardVisibility) }
+          : { ...(taskFields ?? props.cardVisibility) };
     const r = await saveKanbanCustomize({
       board: props.board,
       columns,
@@ -203,7 +254,9 @@ export function KanbanCustomizeDialog({
   const title =
     props.board === "leads"
       ? "Colunas e campos — Leads"
-      : "Colunas e campos — Negócios";
+      : props.board === "deals"
+        ? "Colunas e campos — Negócios"
+        : "Colunas e campos — Tarefas";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -215,7 +268,8 @@ export function KanbanCustomizeDialog({
           <p className="text-sm text-muted-foreground">
             As colunas definem o fluxo (gravado em{" "}
             <code className="rounded bg-muted px-1 text-xs">status</code> ou{" "}
-            <code className="rounded bg-muted px-1 text-xs">stage</code>).
+            <code className="rounded bg-muted px-1 text-xs">stage</code>, conforme
+            o módulo.
             Alterar o identificador interno de uma coluna existente não é
             suportado aqui — renomeie só o título visível.
           </p>
@@ -362,10 +416,29 @@ export function KanbanCustomizeDialog({
                     </label>
                   ))
                 : null}
+              {props.board === "tasks" && taskFields
+                ? TASK_KANBAN_CARD_FIELD_KEYS.map((key) => (
+                    <label
+                      key={key}
+                      className="flex cursor-pointer items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-sm hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={taskFields[key]}
+                        onCheckedChange={(c) =>
+                          setTaskFields((prev) =>
+                            prev
+                              ? { ...prev, [key]: c === true }
+                              : prev
+                          )
+                        }
+                      />
+                      {taskCheckboxLabel(key, props.fieldLabels)}
+                    </label>
+                  ))
+                : null}
             </div>
             <p className="text-xs text-muted-foreground">
-              O nome do lead ou o bloco principal do negócio mantém-se sempre
-              visível no topo do cartão.
+              O título principal do cartão mantém-se sempre visível no topo.
             </p>
           </div>
 

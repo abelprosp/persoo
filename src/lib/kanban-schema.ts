@@ -35,6 +35,23 @@ export type DealKanbanCardVisibility = Record<
   boolean
 >;
 
+export const TASK_KANBAN_CARD_FIELD_KEYS = [
+  "status",
+  "priority",
+  "due_at",
+  "assignee",
+  "updated_at",
+  "custom",
+] as const;
+
+export type TaskKanbanCardFieldKey =
+  (typeof TASK_KANBAN_CARD_FIELD_KEYS)[number];
+
+export type TaskKanbanCardVisibility = Record<
+  TaskKanbanCardFieldKey,
+  boolean
+>;
+
 const DEFAULT_LEAD_CARD_VISIBILITY: LeadKanbanCardVisibility = {
   company: true,
   email: true,
@@ -51,6 +68,15 @@ const DEFAULT_DEAL_CARD_VISIBILITY: DealKanbanCardVisibility = {
   phone: true,
   assignee: true,
   last_updated: true,
+  custom: true,
+};
+
+const DEFAULT_TASK_CARD_VISIBILITY: TaskKanbanCardVisibility = {
+  status: true,
+  priority: true,
+  due_at: true,
+  assignee: true,
+  updated_at: true,
   custom: true,
 };
 
@@ -85,6 +111,24 @@ export function getDealKanbanCardVisibility(
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
   const o = raw as Record<string, unknown>;
   for (const k of DEAL_KANBAN_CARD_FIELD_KEYS) {
+    if (typeof o[k] === "boolean") out[k] = o[k];
+  }
+  return out;
+}
+
+/** Visibilidade de linhas no cartão Kanban de tarefas (`ai_schema.kanban.taskCardFields`). */
+export function getTaskKanbanCardVisibility(
+  aiSchema: Record<string, unknown> | null | undefined
+): TaskKanbanCardVisibility {
+  const out = { ...DEFAULT_TASK_CARD_VISIBILITY };
+  const kanban = aiSchema?.kanban;
+  if (!kanban || typeof kanban !== "object" || Array.isArray(kanban)) {
+    return out;
+  }
+  const raw = (kanban as Record<string, unknown>).taskCardFields;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  const o = raw as Record<string, unknown>;
+  for (const k of TASK_KANBAN_CARD_FIELD_KEYS) {
     if (typeof o[k] === "boolean") out[k] = o[k];
   }
   return out;
@@ -134,6 +178,17 @@ export const DEFAULT_DEAL_COLUMNS: KanbanColumnDef[] = [
     dotClass: "bg-pink-500 ring-pink-500/30",
   },
   { id: "won", title: "Ganho", dotClass: "bg-violet-600 ring-violet-600/30" },
+];
+
+export const DEFAULT_TASK_COLUMNS: KanbanColumnDef[] = [
+  { id: "backlog", title: "Backlog", dotClass: "bg-zinc-900 ring-zinc-900/30" },
+  { id: "todo", title: "A fazer", dotClass: "bg-sky-500 ring-sky-500/30" },
+  {
+    id: "in_progress",
+    title: "Em progresso",
+    dotClass: "bg-amber-500 ring-amber-500/30",
+  },
+  { id: "done", title: "Concluído", dotClass: "bg-emerald-500 ring-emerald-500/30" },
 ];
 
 const DOT_PALETTE = [
@@ -209,6 +264,17 @@ export function getDealKanbanColumns(
   return parseKanbanColumnArray(deals, DEFAULT_DEAL_COLUMNS);
 }
 
+export function getTaskKanbanColumns(
+  aiSchema: Record<string, unknown> | null | undefined
+): KanbanColumnDef[] {
+  const kanban = aiSchema?.kanban;
+  if (!kanban || typeof kanban !== "object" || Array.isArray(kanban)) {
+    return DEFAULT_TASK_COLUMNS;
+  }
+  const tasks = (kanban as Record<string, unknown>).tasks;
+  return parseKanbanColumnArray(tasks, DEFAULT_TASK_COLUMNS);
+}
+
 /** Colunas extra no Kanban para estados na BD que já não existem no pipeline IA. */
 export function withOrphanKanbanColumns(
   columns: KanbanColumnDef[],
@@ -242,6 +308,13 @@ export function firstDealStageId(
   return cols[0]?.id ?? "qualification";
 }
 
+export function firstTaskStatusId(
+  aiSchema: Record<string, unknown> | null | undefined
+): string {
+  const cols = getTaskKanbanColumns(aiSchema);
+  return cols[0]?.id ?? "todo";
+}
+
 export function allowedLeadStatusSet(
   aiSchema: Record<string, unknown> | null | undefined
 ): Set<string> {
@@ -252,4 +325,10 @@ export function allowedDealStageSet(
   aiSchema: Record<string, unknown> | null | undefined
 ): Set<string> {
   return new Set(getDealKanbanColumns(aiSchema).map((c) => c.id));
+}
+
+export function allowedTaskStatusSet(
+  aiSchema: Record<string, unknown> | null | undefined
+): Set<string> {
+  return new Set(getTaskKanbanColumns(aiSchema).map((c) => c.id));
 }
