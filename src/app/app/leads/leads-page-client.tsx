@@ -1,0 +1,109 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  CreateLeadDialog,
+  type LeadFormFieldLabels,
+  type StatusOption,
+} from "@/components/crm/create-lead-dialog";
+import { PageHeader } from "@/components/crm/page-header";
+import { PageToolbar } from "@/components/crm/page-toolbar";
+import {
+  KanbanBoard,
+  type KanbanColumnDef,
+} from "@/components/crm/kanban-board";
+import { KanbanCustomizeControl } from "@/components/crm/kanban-customize-dialog";
+import type { CustomFieldDef } from "@/lib/ai-schema";
+import type { LeadKanbanCardVisibility } from "@/lib/kanban-schema";
+
+type Props = {
+  kanbanColumns: KanbanColumnDef[];
+  kanbanEditableColumns: { id: string; title: string }[];
+  createStatusOptions: StatusOption[];
+  firstCreateStatusId: string;
+  itemsByColumn: Record<string, Record<string, unknown>[]>;
+  customFields: CustomFieldDef[];
+  fieldLabels: LeadFormFieldLabels;
+  cardVisibility: LeadKanbanCardVisibility;
+};
+
+export function LeadsPageClient({
+  kanbanColumns,
+  kanbanEditableColumns,
+  createStatusOptions,
+  firstCreateStatusId,
+  itemsByColumn,
+  customFields,
+  fieldLabels,
+  cardVisibility,
+}: Props) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [defaultStatus, setDefaultStatus] = useState(firstCreateStatusId);
+
+  useEffect(() => {
+    setDefaultStatus(firstCreateStatusId);
+  }, [firstCreateStatusId]);
+
+  function openCreate(columnId: string) {
+    setDefaultStatus(columnId);
+    setCreateOpen(true);
+  }
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        breadcrumb="Leads"
+        viewLabel="Kanban"
+        createSlot={
+          <>
+            <Button
+              type="button"
+              className="bg-zinc-900 text-white hover:bg-zinc-800"
+              onClick={() => openCreate(firstCreateStatusId)}
+            >
+              <Plus className="mr-2 size-4" />
+              Criar
+            </Button>
+            <CreateLeadDialog
+              statusOptions={createStatusOptions}
+              customFields={customFields}
+              fieldLabels={fieldLabels}
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              defaultStatus={defaultStatus}
+              showTrigger={false}
+            />
+          </>
+        }
+        toolbar={
+          <PageToolbar
+            variant="kanban"
+            kanbanExtra={
+              <KanbanCustomizeControl
+                board="leads"
+                initialColumns={kanbanEditableColumns}
+                cardVisibility={cardVisibility}
+                fieldLabels={{
+                  company: fieldLabels.company ?? "Empresa",
+                  email: fieldLabels.email ?? "E-mail",
+                  phone: fieldLabels.phone ?? "Telefone",
+                  owner_name: fieldLabels.owner_name ?? "Responsável",
+                }}
+              />
+            }
+          />
+        }
+      />
+      <KanbanBoard
+        variant="lead"
+        columns={kanbanColumns}
+        itemsByColumn={itemsByColumn}
+        customFields={customFields}
+        cardVisibility={cardVisibility}
+        onAddClick={openCreate}
+      />
+    </div>
+  );
+}
