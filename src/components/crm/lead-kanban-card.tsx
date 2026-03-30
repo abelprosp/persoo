@@ -83,7 +83,8 @@ export function LeadKanbanCard({
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
-      onClick={() => {
+      onClick={(e) => {
+        if (!e.currentTarget.contains(e.target as Node)) return;
         if (open || openDetails) return;
         setOpenDetails(true);
       }}
@@ -126,7 +127,7 @@ export function LeadKanbanCard({
         </div>
       ) : null}
       {visibility.last_activity ? (
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="mt-1 text-[11px] text-muted-foreground" suppressHydrationWarning>
           {relativeTime(item.last_activity_at)}
         </p>
       ) : null}

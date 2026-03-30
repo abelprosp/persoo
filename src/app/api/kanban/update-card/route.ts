@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await supabase.from("card_activities").insert({
+    const { error: activityError } = await supabase.from("card_activities").insert({
       workspace_id: active.id,
       entity_type: "lead",
       entity_id: id,
@@ -65,6 +65,9 @@ export async function POST(req: Request) {
       description: "Campos principais do lead foram editados.",
       author_name: authorName,
     });
+    if (activityError) {
+      return NextResponse.json({ error: activityError.message }, { status: 500 });
+    }
   } else if (variant === "deal") {
     const rawValue = String(payload.value ?? "").trim();
     const parsed = rawValue === "" ? null : Number(rawValue.replace(",", "."));
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await supabase.from("card_activities").insert({
+    const { error: activityError } = await supabase.from("card_activities").insert({
       workspace_id: active.id,
       entity_type: "deal",
       entity_id: id,
@@ -100,6 +103,9 @@ export async function POST(req: Request) {
       description: "Campos principais do negócio foram editados.",
       author_name: authorName,
     });
+    if (activityError) {
+      return NextResponse.json({ error: activityError.message }, { status: 500 });
+    }
   } else {
     const dueRaw = String(payload.due_at ?? "").trim();
     const due_at = dueRaw === "" ? null : new Date(dueRaw).toISOString();
@@ -123,7 +129,7 @@ export async function POST(req: Request) {
       .eq("workspace_id", active.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await supabase.from("card_activities").insert({
+    const { error: activityError } = await supabase.from("card_activities").insert({
       workspace_id: active.id,
       entity_type: "task",
       entity_id: id,
@@ -132,6 +138,9 @@ export async function POST(req: Request) {
       description: "Campos principais da tarefa foram editados.",
       author_name: authorName,
     });
+    if (activityError) {
+      return NextResponse.json({ error: activityError.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

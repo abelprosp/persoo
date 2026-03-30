@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await supabase.from("card_activities").insert({
+  const { error: activityError } = await supabase.from("card_activities").insert({
     workspace_id: active.id,
     entity_type: variant,
     entity_id: id,
@@ -82,6 +82,9 @@ export async function POST(req: Request) {
     author_name: authorName,
     meta: { from: fromColumn || null, to: toColumn },
   });
+  if (activityError) {
+    return NextResponse.json({ error: activityError.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

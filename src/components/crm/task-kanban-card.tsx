@@ -83,7 +83,8 @@ export function TaskKanbanCard({
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
-      onClick={() => {
+      onClick={(e) => {
+        if (!e.currentTarget.contains(e.target as Node)) return;
         if (open || openDetails) return;
         setOpenDetails(true);
       }}
@@ -128,12 +129,14 @@ export function TaskKanbanCard({
           {item.due_at ? (
             <span className="inline-flex items-center gap-1">
               <Calendar className="size-3.5" />
-              {new Date(item.due_at).toLocaleDateString("pt-PT", {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              <span suppressHydrationWarning>
+                {new Date(item.due_at).toLocaleDateString("pt-PT", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
             </span>
           ) : (
             "Sem prazo"
@@ -157,7 +160,7 @@ export function TaskKanbanCard({
       ) : null}
 
       {visibility.updated_at ? (
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="mt-1 text-[11px] text-muted-foreground" suppressHydrationWarning>
           {relativeTime(item.updated_at)}
         </p>
       ) : null}
