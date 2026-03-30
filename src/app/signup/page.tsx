@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/card";
 import { PersooLogo } from "@/components/crm/persoo-logo";
 
+function getPublicAppOrigin(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return "https://app.persoocrm.com";
+}
+
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,15 +37,13 @@ function SignupForm() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
+    const appOrigin = getPublicAppOrigin();
     const { error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback`
-            : undefined,
+        emailRedirectTo: `${appOrigin}/auth/callback`,
       },
     });
     setLoading(false);
