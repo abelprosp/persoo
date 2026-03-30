@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Sparkles, CheckCircle2 } from "lucide-react";
+import { CrmTemplatePicker } from "./crm-template-picker";
 
 function NovoWorkspaceHint() {
   const sp = useSearchParams();
@@ -97,6 +98,7 @@ export default function AiSettingsPage() {
       <Suspense fallback={null}>
         <NovoWorkspaceHint />
       </Suspense>
+      <CrmTemplatePicker />
       <Card className="border-violet-200/80 bg-white shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

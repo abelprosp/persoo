@@ -6,6 +6,8 @@ import {
   getEntityLabel,
   readRowCustomData,
 } from "@/lib/ai-schema";
+import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
+import { ContactRowActions } from "@/components/crm/contact-row-actions";
 import { PageHeader } from "@/components/crm/page-header";
 import {
   PageToolbar,
@@ -92,7 +94,8 @@ export default async function ContactsPage({
   const schema = ws.ai_schema as Record<string, unknown> | null;
   const extraCols = getCustomFields(schema, "contacts");
   const extraKeys = extraCols.map((f) => f.key);
-  const colCount = countVisibleTableColumns(hide, [...FIXED_COL_IDS], extraKeys);
+  const colCount =
+    countVisibleTableColumns(hide, [...FIXED_COL_IDS], extraKeys) + 1;
 
   const lblEmail = getEntityLabel(schema, "contacts", "email", "E-mail");
   const lblPhone = getEntityLabel(schema, "contacts", "phone", "Telefone");
@@ -102,6 +105,12 @@ export default async function ContactsPage({
     "organization",
     "Organização"
   );
+
+  const contactFieldLabels = {
+    email: lblEmail,
+    phone: lblPhone,
+    organization: lblOrg,
+  };
 
   let query = supabase
     .from("contacts")
@@ -115,6 +124,13 @@ export default async function ContactsPage({
 
   const { data: rows } = await query;
   const list = rows ?? [];
+
+  const { data: orgSelectRows } = await supabase
+    .from("organizations")
+    .select("id,name")
+    .eq("workspace_id", ws.id)
+    .order("name");
+  const organizationsForForm = orgSelectRows ?? [];
 
   const orgIds = [
     ...new Set(
@@ -145,19 +161,25 @@ export default async function ContactsPage({
   return (
     <div className="space-y-4">
       <PageHeader
-        breadcrumb="Contatos"
+        breadcrumb="Contactos"
         viewLabel="Lista"
-        createHref="/app/contacts"
-        toolbar={
-          <div className="flex flex-wrap items-center gap-2">
-            <AiModuleCustomizeButton module="contacts" title="Contatos" />
-            <PageToolbar
-              sortOptions={CONTACTS_SORT}
-              columns={toolbarColumns}
-              defaultSortId="updated_desc"
-              searchPlaceholder="E-mail ou telefone…"
+        createSlot={
+          <div className="flex items-center gap-2">
+            <ContactFormDialog
+              organizations={organizationsForForm}
+              customFields={extraCols}
+              fieldLabels={contactFieldLabels}
             />
+            <AiModuleCustomizeButton module="contacts" title="Contactos" />
           </div>
+        }
+        toolbar={
+          <PageToolbar
+            sortOptions={CONTACTS_SORT}
+            columns={toolbarColumns}
+            defaultSortId="updated_desc"
+            searchPlaceholder="E-mail ou telefone…"
+          />
         }
       />
       <div className="overflow-hidden rounded-xl border border-border/80 bg-white shadow-sm">
@@ -179,6 +201,7 @@ export default async function ContactsPage({
               {vis("updated") ? (
                 <TableHead>Última alteração</TableHead>
               ) : null}
+              <TableHead className="w-[52px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -188,7 +211,8 @@ export default async function ContactsPage({
                   colSpan={colCount}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Sem contatos.
+                  Sem contactos. Crie um novo ou carregue dados de demonstração no
+                  dashboard.
                 </TableCell>
               </TableRow>
             ) : (
@@ -248,10 +272,27 @@ export default async function ContactsPage({
                         ) : null
                     )}
                     {vis("updated") ? (
-                      <TableCell className="text-muted-foreground">
+                      <TableCell
+                        className="text-muted-foreground"
+                        suppressHydrationWarning
+                      >
                         {relativeTime(c.updated_at)}
                       </TableCell>
                     ) : null}
+                    <TableCell className="text-right">
+                      <ContactRowActions
+                        contact={{
+                          id: c.id,
+                          email: c.email,
+                          phone: c.phone,
+                          organization_id: c.organization_id,
+                          custom_data: c.custom_data,
+                        }}
+                        organizations={organizationsForForm}
+                        customFields={extraCols}
+                        fieldLabels={contactFieldLabels}
+                      />
+                    </TableCell>
                   </TableRow>
                 );
               })
