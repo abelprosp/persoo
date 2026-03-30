@@ -85,7 +85,24 @@ export async function GET(req: Request) {
     .limit(100);
   if (actError) return NextResponse.json({ error: actError.message }, { status: 500 });
 
-  return NextResponse.json({ row, notes: notes ?? [], activities: activities ?? [] });
+  const { data: columnHistory, error: historyError } = await supabase
+    .from("card_column_history")
+    .select("id,column_id,entered_at,exited_at,duration_seconds")
+    .eq("workspace_id", active.id)
+    .eq("entity_type", variant)
+    .eq("entity_id", id)
+    .order("entered_at", { ascending: false })
+    .limit(200);
+  if (historyError) {
+    return NextResponse.json({ error: historyError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    row,
+    notes: notes ?? [],
+    activities: activities ?? [],
+    columnHistory: columnHistory ?? [],
+  });
 }
 
 export async function POST(req: Request) {

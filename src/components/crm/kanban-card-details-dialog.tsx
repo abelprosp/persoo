@@ -32,6 +32,14 @@ type ActivityItem = {
   created_at: string;
 };
 
+type ColumnHistoryItem = {
+  id: string;
+  column_id: string;
+  entered_at: string;
+  exited_at: string | null;
+  duration_seconds: number | null;
+};
+
 type Props = {
   variant: Variant;
   cardId: string;
@@ -49,10 +57,12 @@ export function KanbanCardDetailsDialog({
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
+  const [nowMs, setNowMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [row, setRow] = useState<Record<string, unknown> | null>(null);
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [columnHistory, setColumnHistory] = useState<ColumnHistoryItem[]>([]);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
@@ -75,10 +85,13 @@ export function KanbanCardDetailsDialog({
       row: Record<string, unknown>;
       notes: NoteItem[];
       activities: ActivityItem[];
+      columnHistory?: ColumnHistoryItem[];
     };
     setRow(j.row);
     setNotes(j.notes ?? []);
     setActivities(j.activities ?? []);
+    setColumnHistory(j.columnHistory ?? []);
+    setNowMs(Date.now());
   }
 
   const entries = Object.entries(row ?? {});
@@ -162,6 +175,52 @@ export function KanbanCardDetailsDialog({
                 </p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <h4 className="text-sm font-semibold">Colunas e tempo</h4>
+          <div className="space-y-2 rounded-md border p-3">
+            {columnHistory.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Sem histórico de colunas ainda.
+              </p>
+            ) : (
+              columnHistory.map((h) => {
+                const seconds =
+                  h.duration_seconds ??
+                  Math.max(
+                    0,
+                    Math.floor(
+                      (nowMs - new Date(h.entered_at).getTime()) / 1000
+                    )
+                  );
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const sec = seconds % 60;
+                const durationLabel =
+                  hours > 0
+                    ? `${hours}h ${minutes}m`
+                    : minutes > 0
+                      ? `${minutes}m ${sec}s`
+                      : `${sec}s`;
+                return (
+                  <div key={h.id} className="rounded border p-2">
+                    <p className="text-sm font-medium">{h.column_id}</p>
+                    <p
+                      className="mt-1 text-[11px] text-muted-foreground"
+                      suppressHydrationWarning
+                    >
+                      Entrou {relativeTime(h.entered_at)}
+                      {h.exited_at ? ` · Saiu ${relativeTime(h.exited_at)}` : " · Atual"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Tempo: {durationLabel}
+                    </p>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
 
