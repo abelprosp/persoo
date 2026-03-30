@@ -3,6 +3,9 @@ import { getWorkspaceContext } from "@/lib/workspace";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
+const TRIAL_AI_CREDITS_TOTAL = 7;
+const PRO_AI_CREDITS_MONTHLY = 30;
+
 const SYSTEM = `Você é um assistente que define personalização de CRM SaaS por vertical comercial.
 Responda APENAS com JSON válido no formato:
 {
@@ -86,6 +89,84 @@ export async function POST(req: Request) {
     );
   }
 
+  const prevSchema =
+    active.ai_schema &&
+    typeof active.ai_schema === "object" &&
+    !Array.isArray(active.ai_schema)
+      ? (active.ai_schema as Record<string, unknown>)
+      : {};
+
+  const rawUsed = Number(prevSchema.ai_customize_trial_used ?? 0);
+  const trialUsed = Number.isFinite(rawUsed) && rawUsed > 0 ? rawUsed : 0;
+  const rawProUsed = Number(prevSchema.ai_customize_pro_used ?? 0);
+  const proUsedStored =
+    Number.isFinite(rawProUsed) && rawProUsed > 0 ? rawProUsed : 0;
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const storedProMonth =
+    typeof prevSchema.ai_customize_pro_month === "string"
+      ? prevSchema.ai_customize_pro_month
+      : "";
+  const proUsed = storedProMonth === currentMonth ? proUsedStored : 0;
+
+  const { data: subRow, error: subErr } = await supabase
+    .from("workspace_subscriptions")
+    .select("status, subscription_plans ( slug )")
+    .eq("workspace_id", active.id)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (
+    subErr &&
+    !subErr.message.includes(`relation "workspace_subscriptions" does not exist`)
+  ) {
+    console.warn("ai customize subscription read", subErr.message);
+  }
+
+  const isTrial = subRow?.status === "trialing";
+  const planSlug =
+    subRow &&
+    typeof subRow === "object" &&
+    !Array.isArray(subRow) &&
+    subRow.subscription_plans &&
+    typeof subRow.subscription_plans === "object" &&
+    !Array.isArray(subRow.subscription_plans) &&
+    typeof (subRow.subscription_plans as Record<string, unknown>).slug === "string"
+      ? String((subRow.subscription_plans as Record<string, unknown>).slug)
+      : "";
+  const isPro = planSlug === "pro" && subRow?.status === "active";
+
+  if (isTrial && trialUsed >= TRIAL_AI_CREDITS_TOTAL) {
+    return NextResponse.json(
+      {
+        error:
+          "Limite do trial atingido: 7 créditos de personalização de CRM já utilizados.",
+        trialCredits: {
+          total: TRIAL_AI_CREDITS_TOTAL,
+          used: trialUsed,
+          remaining: 0,
+        },
+      },
+      { status: 402 }
+    );
+  }
+  if (isPro && proUsed >= PRO_AI_CREDITS_MONTHLY) {
+    return NextResponse.json(
+      {
+        error:
+          "Limite mensal do plano Pro atingido: 30 créditos de personalização já utilizados neste mês.",
+        monthlyCredits: {
+          plan: "pro",
+          month: currentMonth,
+          total: PRO_AI_CREDITS_MONTHLY,
+          used: proUsed,
+          remaining: 0,
+        },
+      },
+      { status: 402 }
+    );
+  }
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -135,13 +216,6 @@ export async function POST(req: Request) {
   const industry =
     typeof parsed.industry === "string" ? parsed.industry : "Geral";
 
-  const prevSchema =
-    active.ai_schema &&
-    typeof active.ai_schema === "object" &&
-    !Array.isArray(active.ai_schema)
-      ? (active.ai_schema as Record<string, unknown>)
-      : {};
-
   const prevKanban =
     prevSchema.kanban &&
     typeof prevSchema.kanban === "object" &&
@@ -181,6 +255,17 @@ export async function POST(req: Request) {
   if (Object.keys(mergedKanban).length > 0) {
     nextSchema.kanban = mergedKanban;
   }
+  const nextTrialUsed =
+    isTrial && trialUsed < TRIAL_AI_CREDITS_TOTAL ? trialUsed + 1 : trialUsed;
+  nextSchema.ai_customize_trial_used = nextTrialUsed;
+  if (isPro) {
+    nextSchema.ai_customize_pro_month = currentMonth;
+    nextSchema.ai_customize_pro_used =
+      proUsed < PRO_AI_CREDITS_MONTHLY ? proUsed + 1 : proUsed;
+  } else if (storedProMonth === currentMonth) {
+    nextSchema.ai_customize_pro_month = storedProMonth;
+    nextSchema.ai_customize_pro_used = proUsed;
+  }
 
   const { error: upErr } = await supabase
     .from("workspaces")
@@ -205,5 +290,21 @@ export async function POST(req: Request) {
   revalidatePath("/app/leads");
   revalidatePath("/app/deals");
 
-  return NextResponse.json({ schema: nextSchema });
+  return NextResponse.json({
+    schema: nextSchema,
+    trialCredits: {
+      total: TRIAL_AI_CREDITS_TOTAL,
+      used: nextTrialUsed,
+      remaining: Math.max(0, TRIAL_AI_CREDITS_TOTAL - nextTrialUsed),
+    },
+    monthlyCredits: isPro
+      ? {
+          plan: "pro",
+          month: currentMonth,
+          total: PRO_AI_CREDITS_MONTHLY,
+          used: Math.min(PRO_AI_CREDITS_MONTHLY, proUsed + 1),
+          remaining: Math.max(0, PRO_AI_CREDITS_MONTHLY - (proUsed + 1)),
+        }
+      : undefined,
+  });
 }

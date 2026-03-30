@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatBRL, relativeTime } from "@/lib/format";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import { redirect } from "next/navigation";
 import {
   sanitizeIlikeTerm,
@@ -159,10 +160,16 @@ export default async function OrganizationsPage({
         breadcrumb="Organizações"
         viewLabel="Lista"
         createSlot={
-          <CreateOrganizationDialog
-            customFields={extraCols}
-            fieldLabels={orgFieldLabels}
-          />
+          <div className="flex items-center gap-2">
+            <CreateOrganizationDialog
+              customFields={extraCols}
+              fieldLabels={orgFieldLabels}
+            />
+            <AiModuleCustomizeButton
+              module="organizations"
+              title="Organizações"
+            />
+          </div>
         }
         toolbar={
           <PageToolbar

@@ -32,6 +32,7 @@ import {
   resolveSortOption,
   countVisibleTableColumns,
 } from "@/lib/list-toolbar-url";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 
 const PRODUCT_SORT: ListSortOption[] = [
   {
@@ -145,10 +146,13 @@ export default async function ProductsPage({
         breadcrumb={getModuleLabel(schema, "products")}
         viewLabel="Lista"
         createSlot={
-          <CreateProductDialog
-            customFields={extraCols}
-            fieldLabels={productFieldLabels}
-          />
+          <div className="flex items-center gap-2">
+            <CreateProductDialog
+              customFields={extraCols}
+              fieldLabels={productFieldLabels}
+            />
+            <AiModuleCustomizeButton module="products" title="Produtos" />
+          </div>
         }
         toolbar={
           <PageToolbar

@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { relativeTime } from "@/lib/format";
 import { Phone } from "lucide-react";
 import { redirect } from "next/navigation";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import {
   sanitizeIlikeTerm,
   parseHideSet,
@@ -148,12 +149,15 @@ export default async function ContactsPage({
         viewLabel="Lista"
         createHref="/app/contacts"
         toolbar={
-          <PageToolbar
-            sortOptions={CONTACTS_SORT}
-            columns={toolbarColumns}
-            defaultSortId="updated_desc"
-            searchPlaceholder="E-mail ou telefone…"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <AiModuleCustomizeButton module="contacts" title="Contatos" />
+            <PageToolbar
+              sortOptions={CONTACTS_SORT}
+              columns={toolbarColumns}
+              defaultSortId="updated_desc"
+              searchPlaceholder="E-mail ou telefone…"
+            />
+          </div>
         }
       />
       <div className="overflow-hidden rounded-xl border border-border/80 bg-white shadow-sm">

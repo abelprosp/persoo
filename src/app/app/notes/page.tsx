@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/format";
 import { MoreHorizontal } from "lucide-react";
 import { redirect } from "next/navigation";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import {
   sanitizeIlikeTerm,
   parseHideSet,
@@ -99,9 +100,12 @@ export default async function NotesPage({
         breadcrumb="Notas"
         viewLabel="Vista em notas"
         createSlot={
-          <CreateNoteDialog
-            defaultAuthorHint={profile?.full_name ?? undefined}
-          />
+          <div className="flex items-center gap-2">
+            <CreateNoteDialog
+              defaultAuthorHint={profile?.full_name ?? undefined}
+            />
+            <AiModuleCustomizeButton module="notes" title="Notas" />
+          </div>
         }
         toolbar={
           <PageToolbar

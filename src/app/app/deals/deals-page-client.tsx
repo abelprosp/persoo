@@ -15,6 +15,7 @@ import {
   type KanbanColumnDef,
 } from "@/components/crm/kanban-board";
 import { KanbanCustomizeControl } from "@/components/crm/kanban-customize-dialog";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { DealKanbanCardVisibility } from "@/lib/kanban-schema";
 
@@ -57,7 +58,7 @@ export function DealsPageClient({
         breadcrumb="Negócios"
         viewLabel="Kanban"
         createSlot={
-          <>
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               className="bg-zinc-900 text-white hover:bg-zinc-800"
@@ -66,6 +67,7 @@ export function DealsPageClient({
               <Plus className="mr-2 size-4" />
               Criar
             </Button>
+            <AiModuleCustomizeButton module="deals" title="Negócios" />
             <CreateDealDialog
               stageOptions={createStageOptions}
               customFields={customFields}
@@ -75,7 +77,7 @@ export function DealsPageClient({
               defaultStage={defaultStage}
               showTrigger={false}
             />
-          </>
+          </div>
         }
         toolbar={
           <PageToolbar

@@ -15,6 +15,7 @@ import {
   type KanbanColumnDef,
 } from "@/components/crm/kanban-board";
 import { KanbanCustomizeControl } from "@/components/crm/kanban-customize-dialog";
+import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { TaskKanbanCardVisibility } from "@/lib/kanban-schema";
 
@@ -57,7 +58,7 @@ export function TasksPageClient({
         breadcrumb="Tarefas"
         viewLabel="Kanban"
         createSlot={
-          <>
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               className="bg-zinc-900 text-white hover:bg-zinc-800"
@@ -66,6 +67,7 @@ export function TasksPageClient({
               <Plus className="mr-2 size-4" />
               Criar
             </Button>
+            <AiModuleCustomizeButton module="tasks" title="Tarefas" />
             <CreateTaskDialog
               statusOptions={createStatusOptions}
               customFields={customFields}
@@ -75,7 +77,7 @@ export function TasksPageClient({
               defaultStatus={defaultStatus}
               showTrigger={false}
             />
-          </>
+          </div>
         }
         toolbar={
           <PageToolbar

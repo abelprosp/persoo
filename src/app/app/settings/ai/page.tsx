@@ -36,12 +36,26 @@ export default function AiSettingsPage() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [trialCredits, setTrialCredits] = useState<{
+    total: number;
+    used: number;
+    remaining: number;
+  } | null>(null);
+  const [monthlyCredits, setMonthlyCredits] = useState<{
+    plan: string;
+    month: string;
+    total: number;
+    used: number;
+    remaining: number;
+  } | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setResult(null);
     setSavedOk(false);
+    setTrialCredits(null);
+    setMonthlyCredits(null);
     setLoading(true);
     try {
       const res = await fetch("/api/ai/customize", {
@@ -49,13 +63,28 @@ export default function AiSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description }),
       });
-      const data = (await res.json()) as { schema?: unknown; error?: string };
+      const data = (await res.json()) as {
+        schema?: unknown;
+        error?: string;
+        trialCredits?: { total: number; used: number; remaining: number };
+        monthlyCredits?: {
+          plan: string;
+          month: string;
+          total: number;
+          used: number;
+          remaining: number;
+        };
+      };
       if (!res.ok) {
         setError(data.error ?? "Erro");
+        if (data.trialCredits) setTrialCredits(data.trialCredits);
+        if (data.monthlyCredits) setMonthlyCredits(data.monthlyCredits);
         return;
       }
       setResult(JSON.stringify(data.schema, null, 2));
       setSavedOk(true);
+      if (data.trialCredits) setTrialCredits(data.trialCredits);
+      if (data.monthlyCredits) setMonthlyCredits(data.monthlyCredits);
       router.refresh();
     } finally {
       setLoading(false);
@@ -100,6 +129,19 @@ export default function AiSettingsPage() {
             {error && (
               <p className="text-sm text-destructive" role="alert">
                 {error}
+              </p>
+            )}
+            {trialCredits && (
+              <p className="text-xs text-muted-foreground">
+                Créditos do trial: {trialCredits.remaining}/{trialCredits.total}{" "}
+                restantes.
+              </p>
+            )}
+            {monthlyCredits && (
+              <p className="text-xs text-muted-foreground">
+                Créditos mensais ({monthlyCredits.plan.toUpperCase()}):{" "}
+                {monthlyCredits.remaining}/{monthlyCredits.total} restantes em{" "}
+                {monthlyCredits.month}.
               </p>
             )}
             {savedOk && (
