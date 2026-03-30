@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
+import { KanbanCardDetailsDialog } from "@/components/crm/kanban-card-details-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,7 @@ export function LeadKanbanCard({
   visibility: LeadKanbanCardVisibility;
 }) {
   const router = useRouter();
+  const [openDetails, setOpenDetails] = useState(false);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [fullName, setFullName] = useState(item.full_name ?? "");
@@ -79,7 +81,10 @@ export function LeadKanbanCard({
   const initial = item.full_name?.charAt(0) ?? "?";
   const showCustom = visibility.custom && customFields.length > 0;
   return (
-    <div className="rounded-lg border border-border/80 bg-white p-3 shadow-sm">
+    <div
+      className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
+      onClick={() => setOpenDetails(true)}
+    >
       <div className="flex gap-2">
         <Avatar className="size-9">
           <AvatarFallback className="text-xs">{initial}</AvatarFallback>
@@ -134,7 +139,10 @@ export function LeadKanbanCard({
           size="icon"
           className="size-7"
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
         >
           <Pencil className="size-4" />
         </Button>
@@ -161,6 +169,13 @@ export function LeadKanbanCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <KanbanCardDetailsDialog
+        variant="lead"
+        cardId={item.id}
+        title={item.full_name}
+        open={openDetails}
+        onOpenChange={setOpenDetails}
+      />
     </div>
   );
 }
