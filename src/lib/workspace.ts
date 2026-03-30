@@ -39,6 +39,35 @@ export async function getWorkspaceContext(
     ...new Set((memberRows ?? []).map((r) => r.workspace_id)),
   ];
 
+  async function loadByMemberIds(ids: string[]): Promise<WorkspaceContext> {
+    if (ids.length === 0) return { active: null, list: [] };
+    const { data: all, error: listErr } = await supabase
+      .from("workspaces")
+      .select("id, name, industry, ai_schema, created_at")
+      .in("id", ids)
+      .order("created_at", { ascending: true });
+
+    if (listErr || !all?.length) return { active: null, list: [] };
+
+    const list = all as Workspace[];
+    const validPreferred =
+      preferredId && ids.includes(preferredId) ? preferredId : null;
+    const activeId = validPreferred ?? list[0]!.id;
+    const active = list.find((w) => w.id === activeId) ?? list[0] ?? null;
+    return { active, list };
+  }
+
+  async function reloadContextFromDb(): Promise<WorkspaceContext> {
+    const { data: freshMembers } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", userId);
+    const freshIds = [
+      ...new Set((freshMembers ?? []).map((r) => r.workspace_id)),
+    ];
+    return loadByMemberIds(freshIds);
+  }
+
   async function createFirstWorkspace(): Promise<WorkspaceContext> {
     const { data: created, error } = await supabase
       .from("workspaces")
@@ -59,18 +88,22 @@ export async function getWorkspaceContext(
           error.details ?? ""
         );
       }
-      return { active: null, list: [] };
+      // Corrida no primeiro acesso: outra request pode ter criado no mesmo instante.
+      return reloadContextFromDb();
     }
 
-    const { error: memErr } = await supabase.from("workspace_members").insert({
-      workspace_id: created.id,
-      user_id: userId,
-      role: "owner",
-    });
+    const { error: memErr } = await supabase
+      .from("workspace_members")
+      .insert({
+        workspace_id: created.id,
+        user_id: userId,
+        role: "owner",
+      });
 
     if (memErr) {
       console.error("workspace_members insert", memErr.message);
-      return { active: null, list: [] };
+      // Se outra request já inseriu membro, tenta recarregar contexto em vez de falhar.
+      return reloadContextFromDb();
     }
 
     await attachTrialToWorkspace(supabase, created.id);
@@ -83,24 +116,7 @@ export async function getWorkspaceContext(
     return createFirstWorkspace();
   }
 
-  const { data: all, error: listErr } = await supabase
-    .from("workspaces")
-    .select("id, name, industry, ai_schema, created_at")
-    .in("id", memberIds)
-    .order("created_at", { ascending: true });
-
-  if (listErr || !all?.length) {
-    return { active: null, list: [] };
-  }
-
-  const list = all as Workspace[];
-
-  const validPreferred =
-    preferredId && memberIds.includes(preferredId) ? preferredId : null;
-  const activeId = validPreferred ?? list[0]!.id;
-  const active = list.find((w) => w.id === activeId) ?? list[0] ?? null;
-
-  return { active, list };
+  return loadByMemberIds(memberIds);
 }
 
 /** @deprecated use getWorkspaceContext */
