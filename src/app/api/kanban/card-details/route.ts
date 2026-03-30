@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { parseCardEnrichment, rowToCardEnrichment } from "@/lib/card-enrichment";
 
 type Variant = "lead" | "deal" | "task";
 
@@ -97,11 +98,27 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: historyError.message }, { status: 500 });
   }
 
+  const { data: enrRow, error: enrError } = await supabase
+    .from("card_enrichments")
+    .select("checklists,documents,team_members,labels")
+    .eq("workspace_id", active.id)
+    .eq("entity_type", variant)
+    .eq("entity_id", id)
+    .maybeSingle();
+  if (enrError) {
+    return NextResponse.json({ error: enrError.message }, { status: 500 });
+  }
+
+  const enrichment = enrRow
+    ? rowToCardEnrichment(enrRow)
+    : null;
+
   return NextResponse.json({
     row,
     notes: notes ?? [],
     activities: activities ?? [],
     columnHistory: columnHistory ?? [],
+    enrichment,
   });
 }
 
@@ -110,20 +127,26 @@ export async function POST(req: Request) {
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const body = (await req.json().catch(() => ({}))) as {
-    action?: "add_note" | "add_activity";
+    action?:
+      | "add_note"
+      | "add_activity"
+      | "save_enrichment"
+      | "toggle_checklist_item";
     variant?: Variant;
     id?: string;
     title?: string;
     content?: string;
     kind?: string;
     description?: string;
+    enrichment?: unknown;
+    checklistId?: string;
+    itemId?: string;
   };
 
   const action = body.action;
   const variant = body.variant;
   const id = String(body.id ?? "").trim();
-  const title = String(body.title ?? "").trim();
-  if (!action || !variant || !id || !title) {
+  if (!action || !variant || !id) {
     return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
   }
 
@@ -132,6 +155,103 @@ export async function POST(req: Request) {
     data: profile,
   } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
   const authorName = profile?.full_name?.trim() || user.email?.split("@")[0] || "Utilizador";
+
+  if (action === "save_enrichment") {
+    const parsed = parseCardEnrichment(body.enrichment ?? {});
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("card_enrichments").upsert(
+      {
+        workspace_id: active.id,
+        entity_type: variant,
+        entity_id: id,
+        checklists: parsed.checklists,
+        documents: parsed.documents,
+        team_members: parsed.team_members,
+        labels: parsed.labels,
+        updated_at: now,
+      },
+      { onConflict: "workspace_id,entity_type,entity_id" }
+    );
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const { error: actError } = await supabase.from("card_activities").insert({
+      workspace_id: active.id,
+      entity_type: variant,
+      entity_id: id,
+      kind: "enrichment",
+      title: "Checklists, documentos, equipa ou etiquetas atualizados",
+      description: null,
+      author_name: authorName,
+    });
+    if (actError) return NextResponse.json({ error: actError.message }, { status: 500 });
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "toggle_checklist_item") {
+    const checklistId = String(body.checklistId ?? "").trim();
+    const itemId = String(body.itemId ?? "").trim();
+    if (!checklistId || !itemId) {
+      return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("card_enrichments")
+      .select("*")
+      .eq("workspace_id", active.id)
+      .eq("entity_type", variant)
+      .eq("entity_id", id)
+      .maybeSingle();
+    if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    if (!existing) {
+      return NextResponse.json({ error: "Sem dados no card" }, { status: 404 });
+    }
+
+    const parsed = rowToCardEnrichment(existing);
+    let found = false;
+    outer: for (const cl of parsed.checklists) {
+      if (cl.id !== checklistId) continue;
+      for (const it of cl.items) {
+        if (it.id === itemId) {
+          it.done = !it.done;
+          found = true;
+          break outer;
+        }
+      }
+    }
+    if (!found) {
+      return NextResponse.json({ error: "Item não encontrado" }, { status: 404 });
+    }
+
+    const now = new Date().toISOString();
+    const { error: upError } = await supabase
+      .from("card_enrichments")
+      .update({
+        checklists: parsed.checklists,
+        updated_at: now,
+      })
+      .eq("workspace_id", active.id)
+      .eq("entity_type", variant)
+      .eq("entity_id", id);
+    if (upError) return NextResponse.json({ error: upError.message }, { status: 500 });
+
+    await supabase.from("card_activities").insert({
+      workspace_id: active.id,
+      entity_type: variant,
+      entity_id: id,
+      kind: "checklist_toggle",
+      title: "Item de checklist marcado",
+      description: null,
+      author_name: authorName,
+    });
+
+    return NextResponse.json({ ok: true });
+  }
+
+  const title = String(body.title ?? "").trim();
+  if (!title) {
+    return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
+  }
 
   if (action === "add_note") {
     const content = String(body.content ?? "").trim() || null;

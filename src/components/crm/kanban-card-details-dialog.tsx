@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { KanbanCardEnrichmentEditor } from "@/components/crm/kanban-card-enrichment-editor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { emptyCardEnrichment, type CardEnrichment } from "@/lib/card-enrichment";
 import { relativeTime } from "@/lib/format";
 
 type Variant = "lead" | "deal" | "task";
@@ -55,6 +58,7 @@ export function KanbanCardDetailsDialog({
   open,
   onOpenChange,
 }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
   const [nowMs, setNowMs] = useState(0);
@@ -67,6 +71,9 @@ export function KanbanCardDetailsDialog({
   const [noteContent, setNoteContent] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
+  const [enrichmentDraft, setEnrichmentDraft] = useState<CardEnrichment>(
+    emptyCardEnrichment()
+  );
 
   async function load() {
     setLoading(true);
@@ -86,11 +93,13 @@ export function KanbanCardDetailsDialog({
       notes: NoteItem[];
       activities: ActivityItem[];
       columnHistory?: ColumnHistoryItem[];
+      enrichment?: CardEnrichment | null;
     };
     setRow(j.row);
     setNotes(j.notes ?? []);
     setActivities(j.activities ?? []);
     setColumnHistory(j.columnHistory ?? []);
+    setEnrichmentDraft(j.enrichment ?? emptyCardEnrichment());
     setNowMs(Date.now());
   }
 
@@ -154,6 +163,29 @@ export function KanbanCardDetailsDialog({
     await load();
   }
 
+  async function saveEnrichment() {
+    setPending(true);
+    setError(null);
+    const res = await fetch("/api/kanban/card-details", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save_enrichment",
+        variant,
+        id: cardId,
+        enrichment: enrichmentDraft,
+      }),
+    });
+    setPending(false);
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(j.error ?? "Falha ao guardar");
+      return;
+    }
+    await load();
+    router.refresh();
+  }
+
   return (
     <Dialog open={open} onOpenChange={(v) => void handleOpenChange(v)}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
@@ -177,6 +209,13 @@ export function KanbanCardDetailsDialog({
             ))}
           </div>
         </section>
+
+        <KanbanCardEnrichmentEditor
+          value={enrichmentDraft}
+          onChange={setEnrichmentDraft}
+          onSave={() => void saveEnrichment()}
+          pending={pending}
+        />
 
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Colunas e tempo</h4>

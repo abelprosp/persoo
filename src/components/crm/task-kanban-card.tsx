@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
 import { KanbanCardDetailsDialog } from "@/components/crm/kanban-card-details-dialog";
+import { KanbanCardWidgets } from "@/components/crm/kanban-card-widgets";
+import type { CardEnrichment } from "@/lib/card-enrichment";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +31,7 @@ export type TaskRow = {
   assignee_name: string | null;
   updated_at: string | null;
   custom_data?: unknown;
+  card_enrichment?: CardEnrichment | null;
 };
 
 function priorityLabel(p: TaskRow["priority"]) {
@@ -164,6 +167,11 @@ export function TaskKanbanCard({
           {relativeTime(item.updated_at)}
         </p>
       ) : null}
+      <KanbanCardWidgets
+        variant="task"
+        cardId={item.id}
+        enrichment={item.card_enrichment}
+      />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>

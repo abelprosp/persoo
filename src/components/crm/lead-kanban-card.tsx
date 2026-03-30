@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
 import { KanbanCardDetailsDialog } from "@/components/crm/kanban-card-details-dialog";
+import { KanbanCardWidgets } from "@/components/crm/kanban-card-widgets";
+import type { CardEnrichment } from "@/lib/card-enrichment";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +19,7 @@ import { Input } from "@/components/ui/input";
 import { relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { LeadKanbanCardVisibility } from "@/lib/kanban-schema";
-import {
-  AtSign,
-  Pencil,
-  FileText,
-  ListChecks,
-  MessageSquare,
-} from "lucide-react";
+import { Pencil } from "lucide-react";
 
 export type LeadRow = {
   id: string;
@@ -34,6 +30,7 @@ export type LeadRow = {
   owner_name: string | null;
   last_activity_at: string | null;
   custom_data?: unknown;
+  card_enrichment?: CardEnrichment | null;
 };
 
 export function LeadKanbanCard({
@@ -131,13 +128,12 @@ export function LeadKanbanCard({
           {relativeTime(item.last_activity_at)}
         </p>
       ) : null}
-      <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-2">
-        <div className="flex gap-2 text-muted-foreground">
-          <AtSign className="size-3.5" />
-          <FileText className="size-3.5" />
-          <ListChecks className="size-3.5" />
-          <MessageSquare className="size-3.5" />
-        </div>
+      <KanbanCardWidgets
+        variant="lead"
+        cardId={item.id}
+        enrichment={item.card_enrichment}
+      />
+      <div className="mt-2 flex items-center justify-end border-t border-border/60 pt-2">
         <Button
           variant="ghost"
           size="icon"

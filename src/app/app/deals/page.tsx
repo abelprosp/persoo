@@ -8,6 +8,7 @@ import {
   withOrphanKanbanColumns,
 } from "@/lib/kanban-schema";
 import { DealsPageClient } from "@/app/app/deals/deals-page-client";
+import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
 import { redirect } from "next/navigation";
 
 export default async function DealsPage() {
@@ -58,6 +59,9 @@ export default async function DealsPage() {
     if (!byCol[st]) byCol[st] = [];
     byCol[st].push(row);
   }
+
+  const allRows = Object.values(byCol).flat() as Record<string, unknown>[];
+  await attachCardEnrichmentsToRows(supabase, ws.id, "deal", allRows);
 
   const kanbanColumns = withOrphanKanbanColumns(pipeline, byCol);
   const createStageOptions = pipeline.map((c) => ({

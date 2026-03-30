@@ -8,6 +8,7 @@ import {
   withOrphanKanbanColumns,
 } from "@/lib/kanban-schema";
 import { LeadsPageClient } from "@/app/app/leads/leads-page-client";
+import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
 import { redirect } from "next/navigation";
 
 export default async function LeadsPage() {
@@ -47,6 +48,9 @@ export default async function LeadsPage() {
     if (!byCol[st]) byCol[st] = [];
     byCol[st].push(row);
   }
+
+  const allRows = Object.values(byCol).flat() as Record<string, unknown>[];
+  await attachCardEnrichmentsToRows(supabase, ws.id, "lead", allRows);
 
   const kanbanColumns = withOrphanKanbanColumns(pipeline, byCol);
   const createStatusOptions = pipeline.map((c) => ({

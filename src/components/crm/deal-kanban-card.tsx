@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CustomFieldsInline } from "@/components/crm/custom-fields-inline";
 import { KanbanCardDetailsDialog } from "@/components/crm/kanban-card-details-dialog";
+import { KanbanCardWidgets } from "@/components/crm/kanban-card-widgets";
+import type { CardEnrichment } from "@/lib/card-enrichment";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { formatBRL, relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { DealKanbanCardVisibility } from "@/lib/kanban-schema";
-import { FileText, ListChecks, MessageSquare, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 export type DealRow = {
   id: string;
@@ -29,6 +31,7 @@ export type DealRow = {
   organization_name: string | null;
   last_updated: string | null;
   custom_data?: unknown;
+  card_enrichment?: CardEnrichment | null;
 };
 
 export function DealKanbanCard({
@@ -135,14 +138,12 @@ export function DealKanbanCard({
           {relativeTime(item.last_updated)}
         </p>
       ) : null}
-      <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-2">
-        <div className="flex gap-3 text-muted-foreground">
-          <ListChecks className="size-3.5" />
-          <FileText className="size-3.5" />
-          <span className="flex items-center gap-0.5 text-[11px]">
-            <MessageSquare className="size-3.5" />0
-          </span>
-        </div>
+      <KanbanCardWidgets
+        variant="deal"
+        cardId={item.id}
+        enrichment={item.card_enrichment}
+      />
+      <div className="mt-2 flex items-center justify-end border-t border-border/60 pt-2">
         <Button
           variant="ghost"
           size="icon"

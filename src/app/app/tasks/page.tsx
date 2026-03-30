@@ -11,6 +11,7 @@ import {
   withOrphanKanbanColumns,
 } from "@/lib/kanban-schema";
 import { TasksPageClient } from "@/app/app/tasks/tasks-page-client";
+import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
 import { redirect } from "next/navigation";
 
 export default async function TasksPage({
@@ -58,6 +59,9 @@ export default async function TasksPage({
     if (!byCol[st]) byCol[st] = [];
     byCol[st].push(row);
   }
+
+  const allRows = Object.values(byCol).flat() as Record<string, unknown>[];
+  await attachCardEnrichmentsToRows(supabase, ws.id, "task", allRows);
 
   const kanbanColumns = withOrphanKanbanColumns(pipeline, byCol);
   const createStatusOptions = pipeline.map((c) => ({ id: c.id, label: c.title }));
