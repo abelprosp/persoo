@@ -17,6 +17,7 @@ export type TaskCalendarItem = {
 type Props = {
   items: TaskCalendarItem[];
   onCreateClick?: () => void;
+  onDayClick?: (dateYmd: string) => void;
 };
 
 type CalendarDay = {
@@ -77,7 +78,7 @@ function priorityTone(priority: string): "default" | "secondary" | "destructive"
   return "default";
 }
 
-export function TaskCalendarView({ items, onCreateClick }: Props) {
+export function TaskCalendarView({ items, onCreateClick, onDayClick }: Props) {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const days = useMemo(() => getGridDays(monthCursor), [monthCursor]);
 
@@ -161,9 +162,19 @@ export function TaskCalendarView({ items, onCreateClick }: Props) {
           return (
             <div
               key={day.ymd}
-              className={`min-h-28 rounded-md border p-1.5 ${
+              className={`min-h-28 rounded-md border p-1.5 transition-colors ${
                 day.inCurrentMonth ? "bg-background" : "bg-muted/35"
-              }`}
+              } ${onDayClick ? "cursor-pointer hover:bg-muted/30" : ""}`}
+              onClick={() => onDayClick?.(day.ymd)}
+              role={onDayClick ? "button" : undefined}
+              tabIndex={onDayClick ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (!onDayClick) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onDayClick(day.ymd);
+                }
+              }}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span

@@ -49,6 +49,7 @@ export function TasksPageClient({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState(firstCreateStatusId);
+  const [defaultDueAt, setDefaultDueAt] = useState("");
   const [activeView, setActiveView] = useState<"kanban" | "calendar">("kanban");
 
   useEffect(() => {
@@ -57,6 +58,14 @@ export function TasksPageClient({
 
   function openCreate(columnId: string) {
     setDefaultStatus(columnId);
+    setDefaultDueAt("");
+    setCreateOpen(true);
+  }
+
+  function openCreateFromDay(dateYmd: string) {
+    // Predefine 09:00 no dia clicado; o utilizador pode ajustar o horário.
+    setDefaultStatus(firstCreateStatusId);
+    setDefaultDueAt(`${dateYmd}T09:00`);
     setCreateOpen(true);
   }
 
@@ -122,6 +131,7 @@ export function TasksPageClient({
               open={createOpen}
               onOpenChange={setCreateOpen}
               defaultStatus={defaultStatus}
+              defaultDueAt={defaultDueAt}
               showTrigger={false}
             />
           </div>
@@ -167,6 +177,7 @@ export function TasksPageClient({
           <TaskCalendarView
             items={calendarItems}
             onCreateClick={() => openCreate(firstCreateStatusId)}
+            onDayClick={openCreateFromDay}
           />
         </TabsContent>
       </Tabs>

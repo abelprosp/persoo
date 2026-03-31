@@ -35,6 +35,7 @@ type Props = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   defaultStatus?: string;
+  defaultDueAt?: string;
   showTrigger?: boolean;
 };
 
@@ -46,6 +47,7 @@ export function CreateTaskDialog({
   open: controlledOpen,
   onOpenChange,
   defaultStatus = "todo",
+  defaultDueAt = "",
   showTrigger = true,
 }: Props) {
   const router = useRouter();
@@ -60,6 +62,7 @@ export function CreateTaskDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState(defaultStatus);
+  const [dueAt, setDueAt] = useState(defaultDueAt);
 
   const lb = {
     title: fieldLabels?.title ?? "Título",
@@ -72,9 +75,10 @@ export function CreateTaskDialog({
   useEffect(() => {
     if (open) {
       setStatus(defaultStatus);
+      setDueAt(defaultDueAt);
       setError(null);
     }
-  }, [open, defaultStatus]);
+  }, [open, defaultStatus, defaultDueAt]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,6 +94,7 @@ export function CreateTaskDialog({
     setOpen(false);
     e.currentTarget.reset();
     setStatus(defaultStatus);
+    setDueAt(defaultDueAt);
     router.refresh();
   }
 
@@ -158,7 +163,13 @@ export function CreateTaskDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-due">{lb.due_at}</Label>
-                <Input id="task-due" name="due_at" type="datetime-local" />
+                <Input
+                  id="task-due"
+                  name="due_at"
+                  type="datetime-local"
+                  value={dueAt}
+                  onChange={(e) => setDueAt(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-assignee">{lb.assignee_name}</Label>
