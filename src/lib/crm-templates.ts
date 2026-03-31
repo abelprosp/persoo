@@ -7,7 +7,8 @@ export type CrmTemplateId =
   | "recrutamento"
   | "logistica"
   | "telefonia"
-  | "imobiliaria";
+  | "imobiliaria"
+  | "petshop";
 
 export type CrmTemplateMeta = {
   id: CrmTemplateId;
@@ -39,6 +40,12 @@ export const CRM_TEMPLATE_LIST: CrmTemplateMeta[] = [
     title: "Imobiliário",
     shortDescription:
       "Venda, arrendamento, visitas e negociação de imóveis.",
+  },
+  {
+    id: "petshop",
+    title: "Petshop",
+    shortDescription:
+      "Agenda de vacinas, banho/tosa e serviços com gestão de tutores e pets.",
   },
 ];
 
@@ -501,6 +508,129 @@ export function getCrmTemplateSchema(id: CrmTemplateId): Record<string, unknown>
         },
       };
 
+    case "petshop":
+      return {
+        crm_template: "petshop",
+        industry: "Petshop",
+        summary:
+          "Template Petshop: leads de novos tutores, negócios de pacotes/planos, agenda operacional para vacinas, banho, tosa e outros serviços.",
+        moduleLabels: {
+          leads: "Novos tutores",
+          deals: "Vendas & planos",
+          contacts: "Tutores e pets",
+          organizations: "Fornecedores & clínicas",
+          products: "Serviços & produtos pet",
+          notes: "Prontuário & observações",
+          tasks: "Agenda de atendimentos",
+        },
+        entityLabels: {
+          leads: {
+            full_name: "Nome do tutor",
+            email: "E-mail",
+            phone: "WhatsApp / telefone",
+            company: "Origem do contato",
+            owner_name: "Atendente",
+            status: "Etapa de atendimento",
+          },
+          deals: {
+            title: "Venda / plano",
+            value: "Valor total",
+            stage: "Status da negociação",
+            email: "E-mail do tutor",
+            phone: "Telefone",
+            assignee_name: "Consultor",
+            organization_name: "Parceiro / clínica",
+          },
+          contacts: {
+            email: "E-mail do tutor",
+            phone: "Telefone do tutor",
+            organization: "Clínica / parceiro",
+          },
+          organizations: {
+            name: "Fornecedor / clínica",
+            website: "Website",
+            industry: "Tipo",
+            annual_revenue: "Volume anual (ref.)",
+          },
+          products: {
+            name: "Serviço / item",
+            sku: "Código",
+            description: "Descrição",
+            unit_price: "Preço",
+          },
+          tasks: {
+            title: "Atendimento agendado",
+            status: "Situação",
+            priority: "Prioridade",
+            due_at: "Data e hora",
+            assignee_name: "Responsável",
+          },
+        },
+        customFields: {
+          leads: [
+            cf("nome_pet", "Nome do pet"),
+            cf("especie", "Espécie (cão/gato/outros)"),
+            cf("raca", "Raça"),
+            cf("idade_pet", "Idade do pet", "number"),
+            cf("interesse", "Interesse (vacina / banho e tosa / consulta / outros)"),
+          ],
+          deals: [
+            cf("tipo_plano", "Tipo de plano/pacote"),
+            cf("pet_relacionado", "Pet relacionado"),
+            cf("renovacao_em", "Renovação em", "date"),
+          ],
+          contacts: [
+            cf("nome_pet", "Nome do pet"),
+            cf("especie_pet", "Espécie"),
+            cf("porte_pet", "Porte"),
+            cf("aniversario_pet", "Data de nascimento do pet", "date"),
+            cf("alergias_pet", "Alergias / cuidados"),
+          ],
+          organizations: [
+            cf("tipo_parceria", "Tipo de parceria"),
+            cf("prazo_entrega", "Prazo médio entrega"),
+          ],
+          products: [
+            cf("categoria", "Categoria (ração / higiene / acessório / serviço)"),
+            cf("duracao_min", "Duração em minutos", "number"),
+            cf("periodicidade", "Periodicidade sugerida"),
+          ],
+          tasks: [
+            cf("tipo_servico", "Tipo de serviço"),
+            cf("pet_nome", "Nome do pet"),
+            cf("profissional", "Profissional"),
+            cf("sala_unidade", "Sala / unidade"),
+            cf("retorno_em", "Retorno em", "date"),
+          ],
+        },
+        kanban: {
+          leads: [
+            { id: "novo_contato", title: "Novo contato" },
+            { id: "triagem", title: "Triagem" },
+            { id: "contato_realizado", title: "Contato realizado" },
+            { id: "agendamento_inicial", title: "1º agendamento" },
+            { id: "cliente_convertido", title: "Cliente convertido" },
+            { id: "sem_retorno", title: "Sem retorno" },
+          ] satisfies KanbanCol[],
+          deals: [
+            { id: "proposta", title: "Proposta" },
+            { id: "negociacao", title: "Negociação" },
+            { id: "aguarda_pagamento", title: "Aguarda pagamento" },
+            { id: "confirmado", title: "Confirmado" },
+            { id: "em_execucao", title: "Em execução" },
+            { id: "concluido", title: "Concluído" },
+            { id: "cancelado", title: "Cancelado" },
+          ] satisfies KanbanCol[],
+          tasks: [
+            { id: "agendado", title: "Agendado" },
+            { id: "checkin", title: "Check-in" },
+            { id: "em_atendimento", title: "Em atendimento" },
+            { id: "finalizado", title: "Finalizado" },
+            { id: "retorno_previsto", title: "Retorno previsto" },
+          ] satisfies KanbanCol[],
+        },
+      };
+
     default: {
       const _exhaustive: never = id;
       return _exhaustive;
@@ -513,6 +643,7 @@ export function isCrmTemplateId(v: string): v is CrmTemplateId {
     v === "recrutamento" ||
     v === "logistica" ||
     v === "telefonia" ||
-    v === "imobiliaria"
+    v === "imobiliaria" ||
+    v === "petshop"
   );
 }

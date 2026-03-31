@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CreateTaskDialog,
   type TaskFormFieldLabels,
@@ -17,6 +18,10 @@ import {
 } from "@/components/crm/kanban-board";
 import { KanbanCustomizeControl } from "@/components/crm/kanban-customize-dialog";
 import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
+import {
+  TaskCalendarView,
+  type TaskCalendarItem,
+} from "@/components/crm/task-calendar-view";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { TaskKanbanCardVisibility } from "@/lib/kanban-schema";
 
@@ -44,6 +49,7 @@ export function TasksPageClient({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState(firstCreateStatusId);
+  const [activeView, setActiveView] = useState<"kanban" | "calendar">("kanban");
 
   useEffect(() => {
     setDefaultStatus(firstCreateStatusId);
@@ -74,11 +80,30 @@ export function TasksPageClient({
     return true;
   }
 
+  const calendarItems: TaskCalendarItem[] = [];
+  for (const raw of Object.values(itemsByColumn).flat()) {
+    const id = String(raw.id ?? "");
+    const title = String(raw.title ?? "").trim();
+    const dueAtIso = String(raw.due_at ?? "").trim();
+    if (!id || !title || !dueAtIso) continue;
+    const dueDate = new Date(dueAtIso);
+    if (Number.isNaN(dueDate.getTime())) continue;
+    calendarItems.push({
+      id,
+      title,
+      dueAtIso: dueDate.toISOString(),
+      status: String(raw.status ?? ""),
+      priority: String(raw.priority ?? "medium"),
+      assigneeName:
+        raw.assignee_name == null ? null : String(raw.assignee_name),
+    });
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader
         breadcrumb="Tarefas"
-        viewLabel="Kanban"
+        viewLabel={activeView === "kanban" ? "Kanban" : "Calendário"}
         createSlot={
           <div className="flex items-center gap-2">
             <Button
@@ -105,30 +130,46 @@ export function TasksPageClient({
           <PageToolbar
             variant="kanban"
             kanbanExtra={
-              <KanbanCustomizeControl
-                board="tasks"
-                initialColumns={kanbanEditableColumns}
-                cardVisibility={cardVisibility}
-                fieldLabels={{
-                  status: fieldLabels.status ?? "Estado",
-                  priority: fieldLabels.priority ?? "Prioridade",
-                  due_at: fieldLabels.due_at ?? "Prazo",
-                  assignee_name: fieldLabels.assignee_name ?? "Atribuído",
-                }}
-              />
+              activeView === "kanban" ? (
+                <KanbanCustomizeControl
+                  board="tasks"
+                  initialColumns={kanbanEditableColumns}
+                  cardVisibility={cardVisibility}
+                  fieldLabels={{
+                    status: fieldLabels.status ?? "Estado",
+                    priority: fieldLabels.priority ?? "Prioridade",
+                    due_at: fieldLabels.due_at ?? "Prazo",
+                    assignee_name: fieldLabels.assignee_name ?? "Atribuído",
+                  }}
+                />
+              ) : undefined
             }
           />
         }
       />
-      <KanbanBoard
-        variant="task"
-        columns={kanbanColumns}
-        itemsByColumn={itemsByColumn}
-        customFields={customFields}
-        cardVisibility={cardVisibility}
-        onAddClick={openCreate}
-        onMoveCard={moveCard}
-      />
+      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "kanban" | "calendar")}>
+        <TabsList>
+          <TabsTrigger value="kanban">Kanban</TabsTrigger>
+          <TabsTrigger value="calendar">Calendário</TabsTrigger>
+        </TabsList>
+        <TabsContent value="kanban">
+          <KanbanBoard
+            variant="task"
+            columns={kanbanColumns}
+            itemsByColumn={itemsByColumn}
+            customFields={customFields}
+            cardVisibility={cardVisibility}
+            onAddClick={openCreate}
+            onMoveCard={moveCard}
+          />
+        </TabsContent>
+        <TabsContent value="calendar">
+          <TaskCalendarView
+            items={calendarItems}
+            onCreateClick={() => openCreate(firstCreateStatusId)}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

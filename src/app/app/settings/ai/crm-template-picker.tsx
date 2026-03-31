@@ -46,7 +46,7 @@ export function CrmTemplatePicker() {
           Templates prontos
         </CardTitle>
         <CardDescription>
-          Quatro verticais com menu, formulários e kanbans já configurados. As
+          Cinco verticais com menu, formulários e kanbans já configurados. As
           rotas não mudam (continua a usar Leads, Negócios, etc.); só os nomes e
           o fluxo visual adaptam-se ao setor.
         </CardDescription>
