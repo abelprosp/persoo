@@ -17,7 +17,15 @@ export async function attachCardEnrichmentsToRows(
     .eq("entity_type", entityType)
     .in("entity_id", ids);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(
+      "attachCardEnrichmentsToRows",
+      error.message,
+      error.code ?? "",
+      error.details ?? ""
+    );
+    return;
+  }
 
   const map = new Map(
     (data ?? []).map((row) => [row.entity_id as string, row])

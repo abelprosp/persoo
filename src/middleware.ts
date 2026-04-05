@@ -50,18 +50,40 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isOnboardingRoute = pathname.startsWith("/onboarding");
 
-  if (!user && !isAuthRoute && pathname.startsWith("/app")) {
+  if (!user && !isAuthRoute && (pathname.startsWith("/app") || isOnboardingRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app/dashboard";
-    return NextResponse.redirect(url);
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+    const onboardingDone = Boolean(profile?.onboarding_completed);
+
+    if (!onboardingDone && pathname.startsWith("/app")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    if (onboardingDone && isOnboardingRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (isAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = onboardingDone ? "/app/dashboard" : "/onboarding";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (

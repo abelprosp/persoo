@@ -27,10 +27,8 @@ import { formatBRL, relativeTime } from "@/lib/format";
 import { redirect } from "next/navigation";
 import {
   sanitizeIlikeTerm,
-  parseHideSet,
   pickSortId,
   resolveSortOption,
-  countVisibleTableColumns,
 } from "@/lib/list-toolbar-url";
 import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 
@@ -61,14 +59,6 @@ const PRODUCT_SORT: ListSortOption[] = [
   },
 ];
 
-const FIXED_COL_IDS = [
-  "name",
-  "sku",
-  "description",
-  "price",
-  "updated",
-] as const;
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function ProductsPage({
@@ -78,7 +68,6 @@ export default async function ProductsPage({
 }) {
   const sp = await searchParams;
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
-  const hide = parseHideSet(sp.hide);
   const sortId = pickSortId(
     PRODUCT_SORT,
     typeof sp.sort === "string" ? sp.sort : undefined,
@@ -96,8 +85,6 @@ export default async function ProductsPage({
 
   const schema = ws.ai_schema as Record<string, unknown> | null;
   const extraCols = getCustomFields(schema, "products");
-  const extraKeys = extraCols.map((f) => f.key);
-  const colCount = countVisibleTableColumns(hide, [...FIXED_COL_IDS], extraKeys);
 
   const lblName = getEntityLabel(schema, "products", "name", "Nome");
   const lblSku = getEntityLabel(schema, "products", "sku", "SKU");
@@ -129,16 +116,7 @@ export default async function ProductsPage({
   const { data: rows } = await query;
   const list = rows ?? [];
 
-  const vis = (id: string) => !hide.has(id);
-
-  const toolbarColumns = [
-    { id: "name", label: lblName },
-    { id: "sku", label: lblSku },
-    { id: "description", label: lblDesc },
-    { id: "price", label: lblPrice },
-    ...extraCols.map((f) => ({ id: `extra:${f.key}`, label: f.label })),
-    { id: "updated", label: "Última alteração" },
-  ];
+  const colCount = 6 + extraCols.length; // checkbox + 5 fixas + extras
 
   return (
     <div className="space-y-4">
@@ -157,9 +135,11 @@ export default async function ProductsPage({
         toolbar={
           <PageToolbar
             sortOptions={PRODUCT_SORT}
-            columns={toolbarColumns}
+            columns={[]}
             defaultSortId="updated_desc"
             searchPlaceholder="Nome, SKU ou descrição…"
+            hideSortControl
+            hideColumnsControl
           />
         }
       />
@@ -170,23 +150,14 @@ export default async function ProductsPage({
               <TableHead className="w-10">
                 <Checkbox disabled />
               </TableHead>
-              {vis("name") ? <TableHead>{lblName}</TableHead> : null}
-              {vis("sku") ? <TableHead>{lblSku}</TableHead> : null}
-              {vis("description") ? (
-                <TableHead className="max-w-[200px]">{lblDesc}</TableHead>
-              ) : null}
-              {vis("price") ? (
-                <TableHead className="text-right">{lblPrice}</TableHead>
-              ) : null}
+              <TableHead>{lblName}</TableHead>
+              <TableHead>{lblSku}</TableHead>
+              <TableHead className="max-w-[200px]">{lblDesc}</TableHead>
+              <TableHead className="text-right">{lblPrice}</TableHead>
               {extraCols.map(
-                (f) =>
-                  vis(`extra:${f.key}`) ? (
-                    <TableHead key={f.key}>{f.label}</TableHead>
-                  ) : null
+                (f) => <TableHead key={f.key}>{f.label}</TableHead>
               )}
-              {vis("updated") ? (
-                <TableHead>Última alteração</TableHead>
-              ) : null}
+              <TableHead>Última alteração</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -207,40 +178,29 @@ export default async function ProductsPage({
                     <TableCell>
                       <Checkbox disabled />
                     </TableCell>
-                    {vis("name") ? (
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                    ) : null}
-                    {vis("sku") ? (
-                      <TableCell className="text-muted-foreground">
-                        {row.sku ?? "—"}
-                      </TableCell>
-                    ) : null}
-                    {vis("description") ? (
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {row.description ?? "—"}
-                      </TableCell>
-                    ) : null}
-                    {vis("price") ? (
-                      <TableCell className="text-right tabular-nums">
-                        {formatBRL(row.unit_price)}
-                      </TableCell>
-                    ) : null}
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.sku ?? "—"}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                      {row.description ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatBRL(row.unit_price)}
+                    </TableCell>
                     {extraCols.map(
-                      (f) =>
-                        vis(`extra:${f.key}`) ? (
-                          <TableCell
-                            key={f.key}
-                            className="text-muted-foreground"
-                          >
-                            {formatCustomFieldValue(custom[f.key], f.type)}
-                          </TableCell>
-                        ) : null
+                      (f) => (
+                        <TableCell
+                          key={f.key}
+                          className="text-muted-foreground"
+                        >
+                          {formatCustomFieldValue(custom[f.key], f.type)}
+                        </TableCell>
+                      )
                     )}
-                    {vis("updated") ? (
-                      <TableCell className="text-muted-foreground">
-                        {relativeTime(row.updated_at)}
-                      </TableCell>
-                    ) : null}
+                    <TableCell className="text-muted-foreground">
+                      {relativeTime(row.updated_at)}
+                    </TableCell>
                   </TableRow>
                 );
               })

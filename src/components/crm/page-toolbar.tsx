@@ -55,6 +55,8 @@ export type PageToolbarProps =
       columns: ListColumnDef[];
       defaultSortId: string;
       searchPlaceholder?: string;
+      hideSortControl?: boolean;
+      hideColumnsControl?: boolean;
     };
 
 function ToolbarSkeleton() {
@@ -119,12 +121,16 @@ function TableToolbarInner({
   defaultSortId,
   searchPlaceholder = "Pesquisar…",
   variant = "table",
+  hideSortControl = false,
+  hideColumnsControl = false,
 }: {
   sortOptions: ListSortOption[];
   columns: ListColumnDef[];
   defaultSortId: string;
   searchPlaceholder?: string;
   variant?: "table" | "cards";
+  hideSortControl?: boolean;
+  hideColumnsControl?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -188,7 +194,7 @@ function TableToolbarInner({
     void navigator.clipboard.writeText(window.location.href);
   }
 
-  const showColunas = columns.length > 0;
+  const showColunas = !hideColumnsControl && columns.length > 0;
 
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -249,33 +255,35 @@ function TableToolbarInner({
         </PopoverContent>
       </Popover>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "gap-1.5"
-          )}
-        >
-          <ArrowUpDown className="size-4" />
-          Ordenar
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[220px]">
-          <DropdownMenuLabel className="text-xs">Ordenação</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={sortId}
-            onValueChange={(v) => {
-              if (v === defaultSortId) pushParams({ sort: null });
-              else pushParams({ sort: v });
-            }}
+      {!hideSortControl ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "gap-1.5"
+            )}
           >
-            {sortOptions.map((o) => (
-              <DropdownMenuRadioItem key={o.id} value={o.id}>
-                {o.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <ArrowUpDown className="size-4" />
+            Ordenar
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[220px]">
+            <DropdownMenuLabel className="text-xs">Ordenação</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={sortId}
+              onValueChange={(v) => {
+                if (v === defaultSortId) pushParams({ sort: null });
+                else pushParams({ sort: v });
+              }}
+            >
+              {sortOptions.map((o) => (
+                <DropdownMenuRadioItem key={o.id} value={o.id}>
+                  {o.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
 
       {showColunas ? (
         <DropdownMenu>
@@ -343,6 +351,8 @@ function PageToolbarInner(props: PageToolbarProps) {
       defaultSortId={props.defaultSortId}
       searchPlaceholder={props.searchPlaceholder}
       variant={props.variant ?? "table"}
+        hideSortControl={props.hideSortControl}
+        hideColumnsControl={props.hideColumnsControl}
     />
   );
 }
