@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { KanbanCardEnrichmentEditor } from "@/components/crm/kanban-card-enrichment-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,7 +75,7 @@ export function KanbanCardDetailsDialog({
     emptyCardEnrichment()
   );
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     const res = await fetch(
@@ -101,13 +101,17 @@ export function KanbanCardDetailsDialog({
     setColumnHistory(j.columnHistory ?? []);
     setEnrichmentDraft(j.enrichment ?? emptyCardEnrichment());
     setNowMs(Date.now());
-  }
+  }, [variant, cardId]);
+
+  useEffect(() => {
+    if (!open) return;
+    void load();
+  }, [open, load]);
 
   const entries = Object.entries(row ?? {});
 
-  async function handleOpenChange(next: boolean) {
+  function handleOpenChange(next: boolean) {
     onOpenChange(next);
-    if (next) await load();
   }
 
   async function addNote() {
@@ -187,7 +191,7 @@ export function KanbanCardDetailsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => void handleOpenChange(v)}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
