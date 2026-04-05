@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -11,37 +12,36 @@ import {
 
 type Props = {
   workspaceName: string;
-  showSubscribeCta: boolean;
 };
 
-export function BillingStripeClient({ workspaceName, showSubscribeCta }: Props) {
-  const msg = encodeURIComponent(
-    `quero ativar o plano pro do persooCRM (workspace: ${workspaceName})`
-  );
-  const whatsappUrl = `https://wa.me/5551995501677?text=${msg}`;
+const ACTIVATION_PHONE_E164 = "+5551995501677";
+const ACTIVATION_PHONE_DISPLAY = "(51) 99550-1677";
+
+export function BillingStripeClient({ workspaceName }: Props) {
+  const telHref = `tel:${ACTIVATION_PHONE_E164}`;
 
   return (
     <Card className="border-emerald-200/80 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Ativacao do plano Pro</CardTitle>
+        <CardTitle className="text-lg">Ativação do plano Pro</CardTitle>
         <CardDescription>
-          A integracao automatica com Stripe foi removida. A ativacao do plano
-          Pro e feita manualmente via WhatsApp.
+          Ligue para o PersooCRM e indique o espaço «{workspaceName}» para
+          ativar o Pro.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        {showSubscribeCta ? (
-          <Button
-            type="button"
-            className="bg-emerald-700 text-white hover:bg-emerald-800"
-            onClick={() => window.open(whatsappUrl, "_blank", "noreferrer")}
-          >
-            Ativar plano Pro no WhatsApp
-          </Button>
-        ) : null}
-        <p className="w-full text-xs text-muted-foreground">
-          Mensagem enviada: "quero ativar o plano pro do persooCRM". A ativacao
-          sera feita manualmente.
+      <CardContent className="flex flex-col gap-3">
+        <a
+          href={telHref}
+          className={cn(
+            buttonVariants(),
+            "w-fit bg-emerald-700 text-white hover:bg-emerald-800"
+          )}
+        >
+          {`Ligar ${ACTIVATION_PHONE_DISPLAY}`}
+        </a>
+        <p className="text-xs text-muted-foreground">
+          Abre a app de telefone no telemóvel ou computador. A ativação é
+          concluída manualmente após o contacto.
         </p>
       </CardContent>
     </Card>

@@ -86,13 +86,6 @@ export default async function BillingSettingsPage({
     myMember?.role === "owner" ||
     myMember?.role === "admin";
 
-  const showSubscribeCta = Boolean(
-    canDiscussPlan &&
-      subRow &&
-      subRow.status !== "active" &&
-      subRow.status !== "past_due"
-  );
-
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Faturação</h2>
@@ -103,10 +96,7 @@ export default async function BillingSettingsPage({
       </p>
 
       {canDiscussPlan ? (
-        <BillingStripeClient
-          workspaceName={ws.name}
-          showSubscribeCta={showSubscribeCta}
-        />
+        <BillingStripeClient workspaceName={ws.name} />
       ) : null}
 
       <Card className="border-border/80 shadow-sm">
