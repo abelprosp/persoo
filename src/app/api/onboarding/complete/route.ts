@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { getCrmTemplateSchema, isCrmTemplateId } from "@/lib/crm-templates";
+import {
+  getCrmTemplateSchema,
+  isCrmTemplateId,
+  type CrmTemplateId,
+} from "@/lib/crm-templates";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -51,9 +55,16 @@ export async function POST(req: Request) {
   if (mode !== "template" && mode !== "ai") {
     return NextResponse.json({ error: "Modo inválido." }, { status: 400 });
   }
-  if (mode === "template" && !isCrmTemplateId(body.templateId ?? "")) {
-    return NextResponse.json({ error: "Template inválido." }, { status: 400 });
+
+  let validatedTemplateId: CrmTemplateId | undefined;
+  if (mode === "template") {
+    const tid = (body.templateId ?? "").trim();
+    if (!isCrmTemplateId(tid)) {
+      return NextResponse.json({ error: "Template inválido." }, { status: 400 });
+    }
+    validatedTemplateId = tid;
   }
+
   if (mode === "ai" && description.length < 8) {
     return NextResponse.json(
       { error: "Descreva a operação com pelo menos 8 caracteres." },
@@ -91,8 +102,12 @@ export async function POST(req: Request) {
   };
 
   if (mode === "template") {
+    const templateId = validatedTemplateId;
+    if (!templateId) {
+      return NextResponse.json({ error: "Template inválido." }, { status: 400 });
+    }
     const prev = toRecord(active.ai_schema);
-    const template = toRecord(getCrmTemplateSchema(body.templateId!));
+    const template = toRecord(getCrmTemplateSchema(templateId));
     const templateKanban = toRecord(template.kanban);
     const prevKanban = toRecord(prev.kanban);
     const nextKanban: Record<string, unknown> = { ...prevKanban };
