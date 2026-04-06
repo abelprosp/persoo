@@ -34,21 +34,25 @@ export function PageHeader({
   filtersLeft,
 }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-2 text-sm">
-          <span className="font-medium text-foreground">{breadcrumb}</span>
-          <span className="text-muted-foreground">/</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted/80 hover:text-foreground">
-              {viewLabel}
-              <ChevronDown className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem>Lista</DropdownMenuItem>
-              <DropdownMenuItem>Kanban</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 md:text-3xl">
+            {breadcrumb}
+          </h1>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="hidden text-zinc-300 sm:inline">/</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1 rounded-full border border-white/60 bg-white/50 px-3 py-1 text-zinc-600 shadow-sm ring-1 ring-white/70 backdrop-blur-md hover:bg-white/80 hover:text-zinc-900">
+                {viewLabel}
+                <ChevronDown className="size-4 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem>Lista</DropdownMenuItem>
+                <DropdownMenuItem>Kanban</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         {showCreate &&
           (createSlot ??
@@ -57,14 +61,17 @@ export function PageHeader({
                 href={createHref}
                 className={cn(
                   buttonVariants({ variant: "default", size: "default" }),
-                  "bg-zinc-900 text-white hover:bg-zinc-800"
+                  "rounded-full bg-zinc-900 text-white shadow-md shadow-zinc-900/20 hover:bg-zinc-800"
                 )}
               >
                 <Plus className="mr-2 size-4" />
                 Criar
               </Link>
             ) : (
-              <Button className="bg-zinc-900 text-white hover:bg-zinc-800" type="button">
+              <Button
+                className="rounded-full bg-zinc-900 text-white shadow-md shadow-zinc-900/20 hover:bg-zinc-800"
+                type="button"
+              >
                 <Plus className="mr-2 size-4" />
                 Criar
               </Button>

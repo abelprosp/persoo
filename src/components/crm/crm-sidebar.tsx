@@ -84,14 +84,14 @@ export function CrmSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-border/70 bg-[#f9fafb] group-data-[collapsible=icon]:border-border/50 group-data-[collapsible=icon]:bg-gradient-to-b group-data-[collapsible=icon]:from-[#fafafa] group-data-[collapsible=icon]:to-[#f4f4f5]"
+      className="border-r border-white/[0.06] bg-zinc-950 text-zinc-100 group-data-[collapsible=icon]:rounded-r-[1.75rem]"
     >
-      <SidebarHeader className="border-b border-border/50 px-3 py-4 group-data-[collapsible=icon]:border-border/40 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3.5">
-        <div className="flex items-center gap-3 rounded-lg px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="border-b border-white/[0.06] px-3 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3.5">
+        <div className="flex items-center gap-3 rounded-xl px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06] transition-[width,height,box-shadow]",
-              collapsed ? "size-9 shadow-md ring-black/[0.04]" : "size-10"
+              "flex shrink-0 items-center justify-center rounded-2xl bg-white shadow-lg shadow-black/20 ring-1 ring-white/20 transition-[width,height,box-shadow]",
+              collapsed ? "size-9" : "size-10"
             )}
           >
             <PersooLogo
@@ -104,16 +104,17 @@ export function CrmSidebar({
             />
           </div>
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold tracking-tight">
+            <p className="truncate text-sm font-semibold tracking-tight text-zinc-50">
               persooCRM
             </p>
-            <p className="truncate text-xs text-muted-foreground">{userLabel}</p>
+            <p className="truncate text-xs text-zinc-500">{userLabel}</p>
           </div>
         </div>
         <div className="px-1 group-data-[collapsible=icon]:hidden">
           <WorkspaceSwitcher
             workspaces={workspaces}
             activeId={activeWorkspaceId}
+            tone="onDark"
           />
         </div>
       </SidebarHeader>
@@ -133,16 +134,15 @@ export function CrmSidebar({
                       isActive={active}
                       tooltip={item.label}
                       className={cn(
-                        "h-9 rounded-lg px-2 transition-[color,background-color,box-shadow,transform]",
-                        "group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!min-h-9 group-data-[collapsible=icon]:!p-0",
+                        "h-10 rounded-xl px-2 transition-[color,background-color,box-shadow,transform]",
+                        "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!min-h-10 group-data-[collapsible=icon]:!p-0",
                         active
                           ? cn(
-                              "!bg-white font-medium text-foreground shadow-sm ring-1 ring-border/80 data-active:bg-white",
-                              "group-data-[collapsible=icon]:!bg-zinc-900 group-data-[collapsible=icon]:!text-white group-data-[collapsible=icon]:shadow-md group-data-[collapsible=icon]:ring-0",
-                              "group-data-[collapsible=icon]:data-active:!bg-zinc-900",
-                              "group-data-[collapsible=icon]:hover:!bg-zinc-800 group-data-[collapsible=icon]:hover:!text-white"
+                              "!bg-white !font-medium !text-zinc-900 shadow-md shadow-black/10 ring-0 data-active:bg-white",
+                              "group-data-[collapsible=icon]:!bg-white group-data-[collapsible=icon]:!text-zinc-900",
+                              "group-data-[collapsible=icon]:hover:!bg-zinc-100"
                             )
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hover:bg-white/80"
+                          : "text-zinc-500 hover:bg-white/[0.07] hover:text-zinc-100 group-data-[collapsible=icon]:hover:bg-white/10"
                       )}
                     >
                       <Icon className="size-4 shrink-0" />
@@ -155,7 +155,7 @@ export function CrmSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="gap-1 border-t border-border/50 p-3 group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:border-border/40 group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:py-3">
+      <SidebarFooter className="gap-1 border-t border-white/[0.06] p-3 group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:py-3">
         <SidebarMenu className="gap-0.5 group-data-[collapsible=icon]:gap-1.5">
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -163,9 +163,9 @@ export function CrmSidebar({
               onClick={() => toggleSidebar()}
               tooltip={collapsed ? "Expandir menu" : "Recolher menu"}
               className={cn(
-                "h-9 justify-start text-muted-foreground",
-                "group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!min-h-9 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
-                "group-data-[collapsible=icon]:rounded-lg group-data-[collapsible=icon]:text-muted-foreground hover:group-data-[collapsible=icon]:bg-white/80"
+                "h-10 justify-start rounded-xl text-zinc-500 hover:bg-white/[0.07] hover:text-zinc-100",
+                "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!min-h-10 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
+                "hover:group-data-[collapsible=icon]:bg-white/10"
               )}
             >
               {collapsed ? (
@@ -184,24 +184,24 @@ export function CrmSidebar({
                 variant="outline"
                 isActive={adminActive}
                 className={cn(
-                  "h-9",
-                  "group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!min-h-9 group-data-[collapsible=icon]:!p-0",
+                  "h-10 rounded-xl",
+                  "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!min-h-10 group-data-[collapsible=icon]:!p-0",
                   collapsed
                     ? cn(
-                        "border-0 bg-transparent text-muted-foreground shadow-none ring-0 hover:bg-white/80 hover:text-foreground",
+                        "border-0 bg-transparent text-zinc-500 shadow-none ring-0 hover:bg-white/10 hover:text-zinc-100",
                         adminActive &&
-                          "bg-white font-medium text-foreground shadow-sm ring-1 ring-border/60"
+                          "bg-amber-400/20 font-medium text-amber-200 ring-1 ring-amber-400/30"
                       )
                     : cn(
-                        "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 data-active:bg-amber-50",
-                        adminActive && "ring-1 ring-amber-300"
+                        "border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20 data-active:bg-amber-500/10",
+                        adminActive && "ring-1 ring-amber-400/40"
                       )
                 )}
               >
                 <Shield
                   className={cn(
                     "size-4 shrink-0",
-                    collapsed && adminActive && "text-amber-700"
+                    collapsed && adminActive && "text-amber-200"
                   )}
                 />
                 <span>Admin</span>
@@ -215,17 +215,17 @@ export function CrmSidebar({
               variant="outline"
               isActive={settingsActive}
               className={cn(
-                "h-9",
-                "group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!min-h-9 group-data-[collapsible=icon]:!p-0",
+                "h-10 rounded-xl",
+                "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!min-h-10 group-data-[collapsible=icon]:!p-0",
                 collapsed
                   ? cn(
-                      "border-0 bg-transparent text-muted-foreground shadow-none ring-0 hover:bg-white/80 hover:text-foreground",
+                      "border-0 bg-transparent text-zinc-500 shadow-none ring-0 hover:bg-white/10 hover:text-zinc-100",
                       settingsActive &&
-                        "bg-white font-medium text-foreground shadow-sm ring-1 ring-border/60"
+                        "bg-white/15 font-medium text-white ring-1 ring-white/20"
                     )
                   : cn(
-                      "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 data-active:bg-slate-50",
-                      settingsActive && "ring-1 ring-slate-300"
+                      "border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 data-active:bg-white/5",
+                      settingsActive && "ring-1 ring-white/25"
                     )
               )}
             >
@@ -240,31 +240,31 @@ export function CrmSidebar({
               variant="outline"
               isActive={aiActive}
               className={cn(
-                "h-9",
-                "group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!min-h-9 group-data-[collapsible=icon]:!p-0",
+                "h-10 rounded-xl",
+                "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!min-h-10 group-data-[collapsible=icon]:!p-0",
                 collapsed
                   ? cn(
-                      "border-0 bg-transparent text-muted-foreground shadow-none ring-0 hover:bg-white/80 hover:text-foreground",
+                      "border-0 bg-transparent text-zinc-500 shadow-none ring-0 hover:bg-white/10 hover:text-zinc-100",
                       aiActive &&
-                        "bg-white font-medium text-violet-700 shadow-sm ring-1 ring-violet-200/80"
+                        "bg-violet-500/25 font-medium text-violet-100 ring-1 ring-violet-400/40"
                     )
                   : cn(
-                      "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 data-active:bg-violet-50",
-                      aiActive && "ring-1 ring-violet-300"
+                      "border border-violet-400/30 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25 data-active:bg-violet-500/15",
+                      aiActive && "ring-1 ring-violet-400/50"
                     )
               )}
             >
               <Sparkles
                 className={cn(
                   "size-4 shrink-0",
-                  collapsed && aiActive && "text-violet-600"
+                  collapsed && aiActive && "text-violet-200"
                 )}
               />
               <span>IA — personalizar CRM</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SignOutButton />
+            <SignOutButton tone="onDark" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
