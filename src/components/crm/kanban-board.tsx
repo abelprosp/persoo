@@ -121,11 +121,11 @@ export function KanbanBoard(props: Props) {
           return (
             <div
               key={col.id}
-              className="flex w-[300px] shrink-0 flex-col rounded-3xl border border-white/60 bg-white/55 shadow-lg shadow-slate-900/[0.04] ring-1 ring-white/80 backdrop-blur-xl"
+              className="flex w-[300px] shrink-0 flex-col rounded-xl border border-border/80 bg-white/90 shadow-sm"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => void handleDrop(col.id, e)}
             >
-              <div className="flex items-center justify-between border-b border-zinc-200/50 px-3 py-2.5">
+              <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5">
                 <div className="flex items-center gap-2">
                   <span
                     className={cn(

@@ -39,23 +39,15 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl">
-            Visão geral
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Indicadores e tendências do teu CRM
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/60 bg-white/45 p-1.5 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-2">
           <SeedDemoButton />
           <ClearDemoButton />
           <Button
             variant="outline"
             size="sm"
             type="button"
-            className="rounded-xl border-zinc-200/80 bg-white/80"
             onClick={() => router.refresh()}
           >
             <RefreshCw className="mr-2 size-4" />
@@ -65,7 +57,6 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
             variant="outline"
             size="sm"
             type="button"
-            className="rounded-xl border-zinc-200/80 bg-white/80"
             onClick={() => setEditOpen(true)}
           >
             <Pencil className="mr-2 size-4" />
@@ -83,7 +74,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
             setQuery({ days: Number(v) as 7 | 30 | 90, team })
           }
         >
-          <SelectTrigger className="w-[200px] rounded-2xl border-white/60 bg-white/60 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+          <SelectTrigger className="w-[200px] bg-white">
             <CalendarDays className="mr-2 size-4" />
             <SelectValue placeholder="Período" />
           </SelectTrigger>
@@ -99,7 +90,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
             setQuery({ days, team: v as TeamScope })
           }
         >
-          <SelectTrigger className="w-[200px] rounded-2xl border-white/60 bg-white/60 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+          <SelectTrigger className="w-[200px] bg-white">
             <User className="mr-2 size-4" />
             <SelectValue placeholder="Utilizador" />
           </SelectTrigger>

@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
-import { BentoKpiCard } from "@/components/crm/bento-kpi-card";
 import { DashboardCharts } from "@/components/crm/dashboard-charts";
 import { DashboardToolbar } from "@/components/crm/dashboard-toolbar";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatUSDShort } from "@/lib/format";
 import { getAiSummary, getCustomFields } from "@/lib/ai-schema";
 import {
@@ -143,56 +143,63 @@ export default async function DashboardPage({
   const firstRow = kpiRows.slice(0, 5);
   const secondRow = kpiRows.slice(5);
 
-  const periodBadge =
-    days === 7 ? "7 dias" : days === 30 ? "30 dias" : "90 dias";
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <DashboardToolbar days={days} team={team} prefs={prefs}>
         {hasVertical ? (
-          <div className="rounded-3xl border border-violet-200/60 bg-white/50 px-5 py-4 text-sm shadow-md shadow-violet-900/[0.04] ring-1 ring-white/80 backdrop-blur-xl">
-            <p className="font-semibold text-violet-950">
+          <div className="rounded-xl border border-violet-200/80 bg-violet-50/60 px-4 py-3 text-sm">
+            <p className="font-medium text-violet-950">
               {ws.industry && ws.industry !== "Geral"
                 ? `Personalização ativa · ${ws.industry}`
                 : "Personalização ativa"}
             </p>
             {aiSummary && (
-              <p className="mt-1.5 leading-relaxed text-violet-900/75">
-                {aiSummary}
-              </p>
+              <p className="mt-1 text-violet-900/80">{aiSummary}</p>
             )}
           </div>
         ) : null}
       </DashboardToolbar>
 
       {kpiRows.length === 0 ? (
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-muted-foreground">
           Nenhum indicador visível. Clique em &quot;Editar&quot; para mostrar
           cartões no dashboard.
         </p>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {firstRow.map((k, i) => (
-              <BentoKpiCard
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {firstRow.map((k) => (
+              <Card
                 key={k.id}
-                label={k.label}
-                value={k.value}
-                index={i}
-                badge={periodBadge}
-              />
+                className="border-border/80 bg-white shadow-sm"
+              >
+                <CardContent className="p-4">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {k.label}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold tabular-nums">
+                    {k.value}
+                  </p>
+                </CardContent>
+              </Card>
             ))}
           </div>
           {secondRow.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {secondRow.map((k, i) => (
-                <BentoKpiCard
+            <div className="grid gap-3 sm:grid-cols-2">
+              {secondRow.map((k) => (
+                <Card
                   key={k.id}
-                  label={k.label}
-                  value={k.value}
-                  index={i + firstRow.length}
-                  badge={periodBadge}
-                />
+                  className="border-border/80 bg-white shadow-sm"
+                >
+                  <CardContent className="p-4">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {k.label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums">
+                      {k.value}
+                    </p>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : null}

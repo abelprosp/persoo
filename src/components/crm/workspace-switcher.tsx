@@ -26,15 +26,9 @@ export type WorkspaceOption = { id: string; name: string };
 type Props = {
   workspaces: WorkspaceOption[];
   activeId: string;
-  /** Estilo para sidebar escura */
-  tone?: "default" | "onDark";
 };
 
-export function WorkspaceSwitcher({
-  workspaces,
-  activeId,
-  tone = "default",
-}: Props) {
+export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -83,19 +77,9 @@ export function WorkspaceSwitcher({
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={busy || workspaces.length === 0}
-          className={
-            tone === "onDark"
-              ? "mt-2 flex w-full max-w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] text-zinc-400 outline-none transition-colors hover:border-white/15 hover:bg-white/10 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-white/30 disabled:opacity-50"
-              : "mt-2 flex w-full max-w-full items-center justify-between gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[11px] text-muted-foreground outline-none transition-colors hover:border-border/80 hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:opacity-50"
-          }
+          className="mt-2 flex w-full max-w-full items-center justify-between gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[11px] text-muted-foreground outline-none transition-colors hover:border-border/80 hover:bg-white/80 focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:opacity-50"
         >
-          <span
-            className={
-              tone === "onDark"
-                ? "min-w-0 flex-1 truncate font-medium text-zinc-100"
-                : "min-w-0 flex-1 truncate font-medium text-foreground"
-            }
-          >
+          <span className="min-w-0 flex-1 truncate font-medium text-foreground">
             {label}
           </span>
           <ChevronDown className="size-4 shrink-0 opacity-60" />

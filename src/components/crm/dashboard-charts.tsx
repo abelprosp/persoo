@@ -40,12 +40,12 @@ export function DashboardCharts({ trendData = [] }: Props) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="rounded-3xl border border-white/70 bg-white/55 shadow-lg shadow-slate-900/[0.04] ring-1 ring-white/80 backdrop-blur-xl">
+      <Card className="border-border/80 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold tracking-tight text-zinc-900">
+          <CardTitle className="text-base font-semibold">
             Tendência de vendas
           </CardTitle>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             Desempenho diário de leads, negócios e vitórias
           </p>
         </CardHeader>
@@ -89,23 +89,23 @@ export function DashboardCharts({ trendData = [] }: Props) {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Ainda não há dados agregados por dia para este período. Adicione
               leads e negócios para ver a tendência.
             </div>
           )}
         </CardContent>
       </Card>
-      <Card className="rounded-3xl border border-white/70 bg-white/55 shadow-lg shadow-slate-900/[0.04] ring-1 ring-white/80 backdrop-blur-xl">
+      <Card className="border-border/80 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold tracking-tight text-zinc-900">
+          <CardTitle className="text-base font-semibold">
             Receita prevista
           </CardTitle>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             Projetado vs real com base na probabilidade do negócio
           </p>
         </CardHeader>
-        <CardContent className="flex h-[280px] items-center justify-center text-sm text-zinc-500">
+        <CardContent className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
           Ligue dados de negócios para preencher este gráfico
         </CardContent>
       </Card>

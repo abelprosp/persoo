@@ -85,7 +85,7 @@ export function TaskKanbanCard({
   const showCustom = visibility.custom && customFields.length > 0;
   return (
     <div
-      className="cursor-pointer rounded-2xl border border-white/70 bg-white/90 p-3 shadow-md shadow-slate-900/[0.06] ring-1 ring-zinc-200/40 backdrop-blur-sm"
+      className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
       onClick={(e) => {
         if (!e.currentTarget.contains(e.target as Node)) return;
         if (open || openDetails) return;
