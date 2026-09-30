@@ -3,12 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSuperAdmin } from "@/lib/admin";
 import { revalidatePath } from "next/cache";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { User } from "@supabase/supabase-js";
+import type { AppUser, DbClient } from "@/lib/db/types";
 
 async function adminSupabase(): Promise<{
-  supabase: SupabaseClient | null;
-  user: User | null;
+  supabase: DbClient | null;
+  user: AppUser | null;
 }> {
   const supabase = await createClient();
   const {

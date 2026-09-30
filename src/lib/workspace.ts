@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 import { cookies } from "next/headers";
 import { attachTrialToWorkspace } from "@/lib/subscriptions";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/workspace-cookie";
@@ -24,7 +24,7 @@ export type WorkspaceContext = {
  * Cria "Minha empresa" se o utilizador ainda não tiver nenhum.
  */
 export async function getWorkspaceContext(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string
 ): Promise<WorkspaceContext> {
   const cookieStore = await cookies();
@@ -121,7 +121,7 @@ export async function getWorkspaceContext(
 
 /** @deprecated use getWorkspaceContext */
 export async function getOrCreateWorkspace(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string
 ): Promise<Workspace | null> {
   const { active } = await getWorkspaceContext(supabase, userId);

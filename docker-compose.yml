@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: persoo
+      POSTGRES_PASSWORD: persoo
+      POSTGRES_DB: persoo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/00_auth.sql:/docker-entrypoint-initdb.d/00_auth.sql:ro
+      - ./supabase/migrations/001_persoo_crm.sql:/docker-entrypoint-initdb.d/10_001_persoo_crm.sql:ro
+      - ./supabase/migrations/002_workspaces_select_owner.sql:/docker-entrypoint-initdb.d/11_002_workspaces_select_owner.sql:ro
+      - ./supabase/migrations/003_fix_workspace_members_select_recursion.sql:/docker-entrypoint-initdb.d/12_003_fix_workspace_members_select_recursion.sql:ro
+      - ./supabase/migrations/004_tasks_custom_data_products.sql:/docker-entrypoint-initdb.d/13_004_tasks_custom_data_products.sql:ro
+      - ./supabase/migrations/005_subscriptions_and_super_admin.sql:/docker-entrypoint-initdb.d/14_005_subscriptions_and_super_admin.sql:ro
+      - ./supabase/migrations/006_workspace_team_members.sql:/docker-entrypoint-initdb.d/15_006_workspace_team_members.sql:ro
+      - ./supabase/migrations/007_stripe_billing.sql:/docker-entrypoint-initdb.d/16_007_stripe_billing.sql:ro
+      - ./supabase/migrations/008_fix_workspace_members_rls_recursion.sql:/docker-entrypoint-initdb.d/17_008_fix_workspace_members_rls_recursion.sql:ro
+      - ./supabase/migrations/009_fix_workspace_members_insert_recursion.sql:/docker-entrypoint-initdb.d/18_009_fix_workspace_members_insert_recursion.sql:ro
+      - ./supabase/migrations/010_card_notes_and_activities.sql:/docker-entrypoint-initdb.d/19_010_card_notes_and_activities.sql:ro
+      - ./supabase/migrations/011_card_column_time_tracking.sql:/docker-entrypoint-initdb.d/20_011_card_column_time_tracking.sql:ro
+      - ./supabase/migrations/012_card_enrichments.sql:/docker-entrypoint-initdb.d/21_012_card_enrichments.sql:ro
+      - ./supabase/migrations/013_user_onboarding.sql:/docker-entrypoint-initdb.d/22_013_user_onboarding.sql:ro
+      - ./docker/postgres/99_grants.sql:/docker-entrypoint-initdb.d/99_grants.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U persoo -d persoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://persoo_app:persoo_app@postgres:5432/persoo
+      DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
+      AUTH_SECRET: persoo-docker-dev-secret
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

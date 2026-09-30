@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 
 type DbStatus = "trialing" | "active" | "past_due" | "canceled" | "expired";
 
@@ -32,7 +32,7 @@ type SessionMeta = { workspace_id?: string | null; plan_id?: string | null };
  * Grava ou atualiza `workspace_subscriptions` a partir de uma Subscription do Stripe.
  */
 export async function upsertWorkspaceSubscriptionFromStripe(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSub: Stripe.Subscription,
   sessionMeta?: SessionMeta
 ): Promise<void> {
@@ -102,7 +102,7 @@ export async function upsertWorkspaceSubscriptionFromStripe(
 }
 
 export async function markWorkspaceSubscriptionCanceledByStripeId(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSubscriptionId: string
 ): Promise<void> {
   const { error } = await admin
@@ -119,7 +119,7 @@ export async function markWorkspaceSubscriptionCanceledByStripeId(
 }
 
 export async function markWorkspaceSubscriptionPastDueByStripeId(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSubscriptionId: string
 ): Promise<void> {
   const { error } = await admin
