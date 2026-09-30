@@ -11,6 +11,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV AUTH_SECRET=persoo-docker-dev-secret
 ENV DATABASE_URL=postgresql://persoo_app:persoo_app@postgres:5432/persoo
 ENV DATABASE_URL_ADMIN=postgresql://persoo:persoo@postgres:5432/persoo
+ENV NEXT_PUBLIC_APP_URL=http://localhost:18473
 RUN npm run build
 
 FROM node:22-alpine AS runner
@@ -20,6 +21,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV AUTH_SECRET=persoo-docker-dev-secret
 ENV DATABASE_URL=postgresql://persoo_app:persoo_app@postgres:5432/persoo
 ENV DATABASE_URL_ADMIN=postgresql://persoo:persoo@postgres:5432/persoo
+ENV NEXT_PUBLIC_APP_URL=http://localhost:18473
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs

@@ -38,7 +38,7 @@ export default async function CaptacaoPage() {
 
   return (
     <CaptacaoPanel
-      appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}
+      appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:18473"}
       canManage={canManage}
       customFields={getCustomFields(schema, "leads")}
       keys={(keys ?? []).map((row) => ({

@@ -14,7 +14,7 @@ function appOrigin(request: Request): string {
       /* fallthrough */
     }
   }
-  return "http://localhost:3000";
+  return "http://localhost:18473";
 }
 
 export async function POST(request: Request) {

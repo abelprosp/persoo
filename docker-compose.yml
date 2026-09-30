@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: persoo
       POSTGRES_DB: persoo
     ports:
-      - "5432:5432"
+      - "18432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/00_auth.sql:/docker-entrypoint-initdb.d/00_auth.sql:ro
@@ -36,12 +36,12 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "18473:3000"
     environment:
       DATABASE_URL: postgresql://persoo_app:persoo_app@postgres:5432/persoo
       DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
       AUTH_SECRET: persoo-docker-dev-secret
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:18473
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
