@@ -1,0 +1,9 @@
+# Let's Encrypt (ACME HTTP-01) emite o certificado sem email.
+# Descomente a linha abaixo para receber avisos de expiração.
+{
+	# email admin@persoocrm.online
+}
+
+app.persoocrm.online {
+	reverse_proxy app:3000
+}

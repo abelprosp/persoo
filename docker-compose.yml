@@ -41,12 +41,27 @@ services:
       DATABASE_URL: postgresql://persoo_app:persoo_app@postgres:5432/persoo
       DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
       AUTH_SECRET: persoo-docker-dev-secret
-      NEXT_PUBLIC_APP_URL: http://localhost:18473
+      NEXT_PUBLIC_APP_URL: https://app.persoocrm.online
+      AUTH_COOKIE_SECURE: "true"
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
       postgres:
         condition: service_healthy
 
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
