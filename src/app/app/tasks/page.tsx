@@ -12,13 +12,16 @@ import {
 } from "@/lib/kanban-schema";
 import { TasksPageClient } from "@/app/app/tasks/tasks-page-client";
 import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
+import { showingInactive } from "@/lib/active-view";
 import { redirect } from "next/navigation";
 
 export default async function TasksPage({
-  searchParams: _searchParams,
+  searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const sp = await searchParams;
+  const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,6 +52,7 @@ export default async function TasksPage({
     .from("tasks")
     .select("*")
     .eq("workspace_id", ws.id)
+    .eq("active", !onlyInactive)
     .order("updated_at", { ascending: false });
   const list = rows ?? [];
 

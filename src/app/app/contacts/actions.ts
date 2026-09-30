@@ -110,7 +110,7 @@ export async function deleteContact(id: string): Promise<ActionResult> {
 
   const { error } = await supabase
     .from("contacts")
-    .delete()
+    .update({ active: false, updated_at: new Date().toISOString() })
     .eq("id", cid)
     .eq("workspace_id", active.id);
 

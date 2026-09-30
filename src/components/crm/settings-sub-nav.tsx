@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/app/settings/billing", label: "Faturação" },
   { href: "/app/settings/team", label: "Equipa" },
   { href: "/app/settings/ai", label: "IA" },
+  { href: "/app/settings/captacao", label: "Captação" },
 ] as const;
 
 export function SettingsSubNav({ className }: { className?: string }) {

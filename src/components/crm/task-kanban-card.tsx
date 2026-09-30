@@ -21,6 +21,11 @@ import { relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { TaskKanbanCardVisibility } from "@/lib/kanban-schema";
 import { cn } from "@/lib/utils";
+import {
+  CustomDataEditor,
+  customValuesFromRow,
+} from "@/components/crm/custom-data-editor";
+import { RecordActiveButton } from "@/components/crm/record-active-button";
 
 export type TaskRow = {
   id: string;
@@ -31,6 +36,7 @@ export type TaskRow = {
   assignee_name: string | null;
   updated_at: string | null;
   custom_data?: unknown;
+  active?: boolean;
   card_enrichment?: CardEnrichment | null;
 };
 
@@ -59,6 +65,9 @@ export function TaskKanbanCard({
   const [dueAt, setDueAt] = useState(
     item.due_at ? new Date(item.due_at).toISOString().slice(0, 16) : ""
   );
+  const [customValues, setCustomValues] = useState(() =>
+    customValuesFromRow(item, customFields)
+  );
 
   async function onSave() {
     setPending(true);
@@ -73,6 +82,7 @@ export function TaskKanbanCard({
           priority,
           assignee_name: assigneeName,
           due_at: dueAt,
+          custom_data: customValues,
         },
       }),
     });
@@ -92,7 +102,13 @@ export function TaskKanbanCard({
         setOpenDetails(true);
       }}
     >
-      <div className="mb-1 flex items-center justify-end">
+      <div className="mb-1 flex items-center justify-end gap-1">
+        <RecordActiveButton
+          entity="tasks"
+          id={item.id}
+          active={item.active}
+          stopPropagation
+        />
         <Button
           variant="ghost"
           size="icon"
@@ -190,6 +206,13 @@ export function TaskKanbanCard({
             </select>
             <Input value={assigneeName} onChange={(e) => setAssigneeName(e.target.value)} placeholder="Atribuído" />
             <Input value={dueAt} onChange={(e) => setDueAt(e.target.value)} type="datetime-local" />
+            <CustomDataEditor
+              fields={customFields}
+              values={customValues}
+              onChange={(key, value) =>
+                setCustomValues((prev) => ({ ...prev, [key]: value }))
+              }
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

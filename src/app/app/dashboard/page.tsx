@@ -13,6 +13,8 @@ import {
   type KpiValues,
 } from "@/lib/dashboard-prefs";
 import { redirect } from "next/navigation";
+import { showingInactive } from "@/lib/active-view";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
 
 function sinceIso(days: number): string {
   const d = new Date();
@@ -23,12 +25,13 @@ function sinceIso(days: number): string {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; team?: string }>;
+  searchParams: Promise<{ days?: string; team?: string; inativos?: string }>;
 }) {
   const sp = await searchParams;
   const days = parsePeriodDays(sp.days);
   const team = parseTeamScope(sp.team);
   const since = sinceIso(days);
+  const activeFlag = !showingInactive(sp);
 
   const supabase = await createClient();
   const {
@@ -43,6 +46,7 @@ export default async function DashboardPage({
     .from("leads")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", ws.id)
+    .eq("active", activeFlag)
     .gte("updated_at", since);
   if (team === "sales") {
     leadsCountQ = leadsCountQ.not("owner_name", "is", null);
@@ -52,6 +56,7 @@ export default async function DashboardPage({
     .from("deals")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", ws.id)
+    .eq("active", activeFlag)
     .neq("stage", "won")
     .neq("stage", "lost")
     .gte("updated_at", since);
@@ -63,6 +68,7 @@ export default async function DashboardPage({
     .from("deals")
     .select("*", { count: "exact", head: true })
     .eq("workspace_id", ws.id)
+    .eq("active", activeFlag)
     .eq("stage", "won")
     .gte("updated_at", since);
   if (team === "sales") {
@@ -73,6 +79,7 @@ export default async function DashboardPage({
     .from("deals")
     .select("value")
     .eq("workspace_id", ws.id)
+    .eq("active", activeFlag)
     .gte("updated_at", since);
   if (team === "sales") {
     dealsAllQ = dealsAllQ.not("assignee_name", "is", null);
@@ -82,6 +89,7 @@ export default async function DashboardPage({
     .from("deals")
     .select("value")
     .eq("workspace_id", ws.id)
+    .eq("active", activeFlag)
     .eq("stage", "won")
     .gte("updated_at", since);
   if (team === "sales") {
@@ -145,6 +153,9 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <ShowInactiveToggle />
+      </div>
       <DashboardToolbar days={days} team={team} prefs={prefs}>
         {hasVertical ? (
           <div className="rounded-xl border border-violet-200/80 bg-violet-50/60 px-4 py-3 text-sm">

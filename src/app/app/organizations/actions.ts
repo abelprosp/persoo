@@ -70,3 +70,57 @@ export async function createOrganization(
   revalidatePath("/app/contacts");
   return { ok: true };
 }
+
+export async function updateOrganization(
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado" };
+
+  const { active } = await getWorkspaceContext(supabase, user.id);
+  if (!active) return { error: "Espaço de trabalho não encontrado" };
+
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) return { error: "Organização inválida" };
+  if (!name) return { error: "Indique o nome da organização" };
+
+  const website = String(formData.get("website") ?? "").trim() || null;
+  const industry = String(formData.get("industry") ?? "").trim() || null;
+  const logo_url = String(formData.get("logo_url") ?? "").trim() || null;
+
+  const revenueRaw = String(formData.get("annual_revenue") ?? "").trim();
+  let annual_revenue: number | null = null;
+  if (revenueRaw !== "") {
+    const n = Number.parseFloat(revenueRaw.replace(",", "."));
+    if (Number.isNaN(n) || n < 0) return { error: "Receita anual inválida" };
+    annual_revenue = n;
+  }
+
+  const schema = active.ai_schema as Record<string, unknown> | null;
+  const extraFields = getCustomFields(schema, "organizations");
+  const custom_data = customDataFromForm(formData, extraFields);
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      name,
+      website,
+      industry,
+      logo_url,
+      annual_revenue,
+      custom_data,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("workspace_id", active.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/organizations");
+  revalidatePath("/app/contacts");
+  return { ok: true };
+}

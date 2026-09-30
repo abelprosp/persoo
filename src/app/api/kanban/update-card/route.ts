@@ -4,6 +4,12 @@ import { getWorkspaceContext } from "@/lib/workspace";
 
 type Variant = "lead" | "deal" | "task";
 
+function readCustomData(payload: Record<string, unknown>) {
+  const value = payload.custom_data;
+  if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  return null;
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
@@ -45,6 +51,7 @@ export async function POST(req: Request) {
       owner_name: String(payload.owner_name ?? "").trim() || null,
       last_activity_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...(readCustomData(payload) ? { custom_data: readCustomData(payload) } : {}),
     };
     if (!update.full_name) {
       return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
@@ -83,6 +90,7 @@ export async function POST(req: Request) {
       value: parsed,
       last_updated: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...(readCustomData(payload) ? { custom_data: readCustomData(payload) } : {}),
     };
     if (!update.title) {
       return NextResponse.json({ error: "Título é obrigatório" }, { status: 400 });
@@ -118,6 +126,7 @@ export async function POST(req: Request) {
       assignee_name: String(payload.assignee_name ?? "").trim() || null,
       due_at,
       updated_at: new Date().toISOString(),
+      ...(readCustomData(payload) ? { custom_data: readCustomData(payload) } : {}),
     };
     if (!update.title) {
       return NextResponse.json({ error: "Título é obrigatório" }, { status: 400 });

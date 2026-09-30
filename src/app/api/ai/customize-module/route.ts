@@ -21,6 +21,7 @@ const MODULE_ENTITY: Partial<Record<NavModuleKey, AiEntityName>> = {
   organizations: "organizations",
   products: "products",
   tasks: "tasks",
+  notes: "notes",
 };
 
 const MODULE_LABEL_FALLBACK: Record<(typeof MODULES)[number], string> = {

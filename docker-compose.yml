@@ -23,6 +23,9 @@ services:
       - ./supabase/migrations/011_card_column_time_tracking.sql:/docker-entrypoint-initdb.d/20_011_card_column_time_tracking.sql:ro
       - ./supabase/migrations/012_card_enrichments.sql:/docker-entrypoint-initdb.d/21_012_card_enrichments.sql:ro
       - ./supabase/migrations/013_user_onboarding.sql:/docker-entrypoint-initdb.d/22_013_user_onboarding.sql:ro
+      - ./supabase/migrations/014_lead_intake.sql:/docker-entrypoint-initdb.d/23_014_lead_intake.sql:ro
+      - ./supabase/migrations/015_bi_export.sql:/docker-entrypoint-initdb.d/24_015_bi_export.sql:ro
+      - ./supabase/migrations/016_soft_delete.sql:/docker-entrypoint-initdb.d/25_016_soft_delete.sql:ro
       - ./docker/postgres/99_grants.sql:/docker-entrypoint-initdb.d/99_grants.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U persoo -d persoo"]
@@ -39,6 +42,8 @@ services:
       DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
       AUTH_SECRET: persoo-docker-dev-secret
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
       postgres:
         condition: service_healthy
