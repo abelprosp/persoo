@@ -45,8 +45,10 @@ type FormRow = {
 };
 
 function originOf(appUrl: string) {
+  const configured = appUrl.trim().replace(/\/$/, "");
+  if (configured) return configured;
   if (typeof window !== "undefined") return window.location.origin;
-  return appUrl.replace(/\/$/, "");
+  return "http://localhost:18473";
 }
 
 function exampleBody(fields: IntakeField[]) {

@@ -1,9 +1,21 @@
-# Let's Encrypt (ACME HTTP-01) emite o certificado sem email.
-# Descomente a linha abaixo para receber avisos de expiração.
+# O outro site da VPS já ocupa 80 e 443 no host. Este Caddy escuta 80 e 443
+# só dentro do contentor. No host: 18480→80 e 18443→443.
+#
+# Let's Encrypt (ACME HTTP-01) precisa da porta 80 pública. Enquanto o outro
+# site a ocupar, o certificado automático não é emitido. `auto_https off` e
+# `tls internal` fazem o site responder em https://app.persoocrm.online:18443
+# sem Let's Encrypt. O browser avisa do certificado até a CA local do Caddy
+# ser instalada. O HTTP em :18480 só redireciona para esse URL.
+
 {
-	# email admin@persoocrm.online
+	auto_https off
 }
 
-app.persoocrm.online {
+http://app.persoocrm.online:80 {
+	redir https://app.persoocrm.online:18443{uri} permanent
+}
+
+https://app.persoocrm.online:443 {
+	tls internal
 	reverse_proxy app:3000
 }
