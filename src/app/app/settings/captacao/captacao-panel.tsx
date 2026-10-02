@@ -51,6 +51,17 @@ function originOf(appUrl: string) {
   return "http://localhost:18473";
 }
 
+/** Origem pública do exemplo curl, sem porta (o nginx termina o HTTPS). */
+function originWithoutPort(value: string) {
+  try {
+    const url = new URL(value);
+    url.port = "";
+    return url.origin;
+  } catch {
+    return value.replace(/:\d+$/, "");
+  }
+}
+
 function exampleBody(fields: IntakeField[]) {
   const body: Record<string, string> = {};
   for (const field of fields) {
@@ -90,7 +101,7 @@ export function CaptacaoPanel({
   const [extraTarget, setExtraTarget] = useState<"key" | "form">("key");
   const origin = originOf(appUrl);
 
-  const webhookUrl = `${origin}/api/webhooks/leads`;
+  const webhookUrl = `${originWithoutPort(origin)}/api/webhooks/leads`;
 
   const unusedCustom = useMemo(() => {
     const used = new Set(

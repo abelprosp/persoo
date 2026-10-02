@@ -41,7 +41,7 @@ services:
       DATABASE_URL: postgresql://persoo_app:persoo_app@postgres:5432/persoo
       DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
       AUTH_SECRET: persoo-docker-dev-secret
-      NEXT_PUBLIC_APP_URL: https://app.persoocrm.online:18443
+      NEXT_PUBLIC_APP_URL: https://app.persoocrm.com
       AUTH_COOKIE_SECURE: "true"
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}

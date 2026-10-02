@@ -1,21 +1,22 @@
-# O outro site da VPS já ocupa 80 e 443 no host. Este Caddy escuta 80 e 443
-# só dentro do contentor. No host: 18480→80 e 18443→443.
+# O URL público é https://app.persoocrm.com (sem porta). O nginx do host
+# termina o HTTPS e faz proxy para a app em 127.0.0.1:18473. As portas 80
+# e 443 do host não são publicadas por este contentor.
 #
-# Let's Encrypt (ACME HTTP-01) precisa da porta 80 pública. Enquanto o outro
-# site a ocupar, o certificado automático não é emitido. `auto_https off` e
-# `tls internal` fazem o site responder em https://app.persoocrm.online:18443
-# sem Let's Encrypt. O browser avisa do certificado até a CA local do Caddy
-# ser instalada. O HTTP em :18480 só redireciona para esse URL.
+# Este Caddy escuta 80 e 443 só dentro do contentor (host: 18480→80 e
+# 18443→443). `auto_https off` e `tls internal` mantêm HTTPS nessas portas
+# altas, sem Let's Encrypt. O browser avisa do certificado até a CA local
+# do Caddy ser instalada. O HTTP em :18480 redireciona para
+# https://app.persoocrm.com:18443 (só o Caddy nas portas altas).
 
 {
 	auto_https off
 }
 
-http://app.persoocrm.online:80 {
-	redir https://app.persoocrm.online:18443{uri} permanent
+http://app.persoocrm.com:80 {
+	redir https://app.persoocrm.com:18443{uri} permanent
 }
 
-https://app.persoocrm.online:443 {
+https://app.persoocrm.com:443 {
 	tls internal
 	reverse_proxy app:3000
 }
