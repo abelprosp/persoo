@@ -11,6 +11,7 @@ import {
   type TaskStatusOption,
 } from "@/components/crm/create-task-dialog";
 import { PageHeader } from "@/components/crm/page-header";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
 import { PageToolbar } from "@/components/crm/page-toolbar";
 import {
   KanbanBoard,
@@ -113,6 +114,7 @@ export function TasksPageClient({
       <PageHeader
         breadcrumb="Tarefas"
         viewLabel={activeView === "kanban" ? "Kanban" : "Calendário"}
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <Button

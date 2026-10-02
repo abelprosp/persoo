@@ -60,7 +60,7 @@ export function LoginForm() {
         <CardHeader>
           <CardTitle>Entrar</CardTitle>
           <CardDescription>
-            Use o e-mail e a palavra-passe da sua conta Supabase.
+            Use o e-mail e a palavra-passe da sua conta.
           </CardDescription>
         </CardHeader>
         <CardContent>

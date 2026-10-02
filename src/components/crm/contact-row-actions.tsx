@@ -15,7 +15,7 @@ import {
   type ContactFormFieldLabels,
   type ContactRow,
 } from "@/components/crm/contact-form-dialog";
-import { deleteContact } from "@/app/app/contacts/actions";
+import { setRecordActive } from "@/app/app/records/actions";
 
 type Props = {
   contact: ContactRow;
@@ -34,11 +34,15 @@ export function ContactRowActions({
   const [openEdit, setOpenEdit] = useState(false);
   const [pending, setPending] = useState(false);
 
-  async function onDelete() {
-    const ok = window.confirm("Eliminar este contacto?");
+  const isActive = contact.active !== false;
+
+  async function onToggle() {
+    const ok = window.confirm(
+      isActive ? "Desativar este contacto?" : "Reativar este contacto?"
+    );
     if (!ok) return;
     setPending(true);
-    const r = await deleteContact(contact.id);
+    const r = await setRecordActive("contacts", contact.id, !isActive);
     setPending(false);
     if ("error" in r) {
       window.alert(r.error);
@@ -61,11 +65,10 @@ export function ContactRowActions({
             Editar
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => void onDelete()}
-            className="text-destructive"
+            onClick={() => void onToggle()}
             disabled={pending}
           >
-            Eliminar
+            {isActive ? "Desativar" : "Reativar"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

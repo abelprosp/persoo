@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { customDataFromForm, getCustomFields } from "@/lib/ai-schema";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 
@@ -76,12 +77,17 @@ export async function updateNote(formData: FormData): Promise<ActionResult> {
   if (!id) return { error: "Nota inválida" };
   if (!title) return { error: "Indique o título da nota" };
 
+  const schema = active.ai_schema as Record<string, unknown> | null;
+  const extraFields = getCustomFields(schema, "notes");
+  const custom_data = customDataFromForm(formData, extraFields);
+
   const { error } = await supabase
     .from("notes")
     .update({
       title,
       content,
       author_name,
+      custom_data,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -108,7 +114,7 @@ export async function deleteNote(id: string): Promise<ActionResult> {
 
   const { error } = await supabase
     .from("notes")
-    .delete()
+    .update({ active: false, updated_at: new Date().toISOString() })
     .eq("id", noteId)
     .eq("workspace_id", active.id);
 

@@ -9,9 +9,16 @@ import {
 } from "@/lib/kanban-schema";
 import { DealsPageClient } from "@/app/app/deals/deals-page-client";
 import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
+import { showingInactive } from "@/lib/active-view";
 import { redirect } from "next/navigation";
 
-export default async function DealsPage() {
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ inativos?: string }>;
+}) {
+  const sp = await searchParams;
+  const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,7 +54,8 @@ export default async function DealsPage() {
   const { data: deals } = await supabase
     .from("deals")
     .select("*")
-    .eq("workspace_id", ws.id);
+    .eq("workspace_id", ws.id)
+    .eq("active", !onlyInactive);
 
   const items = deals ?? [];
   const byCol: Record<string, Record<string, unknown>[]> = {};

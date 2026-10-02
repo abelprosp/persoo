@@ -1,8 +1,8 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 
 /** Dono do workspace ou membro owner/admin. */
 export async function userCanManageWorkspaceBilling(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string,
   workspaceId: string
 ): Promise<boolean> {

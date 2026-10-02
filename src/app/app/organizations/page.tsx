@@ -33,6 +33,9 @@ import {
   resolveSortOption,
   countVisibleTableColumns,
 } from "@/lib/list-toolbar-url";
+import { showingInactive } from "@/lib/active-view";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
+import { OrganizationRowActions } from "@/components/crm/organization-row-actions";
 
 const ORG_SORT: ListSortOption[] = [
   {
@@ -130,10 +133,12 @@ export default async function OrganizationsPage({
     ),
   };
 
+  const onlyInactive = showingInactive(sp);
   let query = supabase
     .from("organizations")
     .select("*")
-    .eq("workspace_id", ws.id);
+    .eq("workspace_id", ws.id)
+    .eq("active", !onlyInactive);
   if (q) {
     const p = `%${q}%`;
     query = query.or(`name.ilike.${p},website.ilike.${p},industry.ilike.${p}`);
@@ -159,6 +164,7 @@ export default async function OrganizationsPage({
       <PageHeader
         breadcrumb="Organizações"
         viewLabel="Lista"
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <CreateOrganizationDialog
@@ -235,6 +241,11 @@ export default async function OrganizationsPage({
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{org.name}</span>
+                          <OrganizationRowActions
+                            org={org}
+                            customFields={extraCols}
+                            fieldLabels={orgFieldLabels}
+                          />
                         </div>
                       </TableCell>
                     ) : null}

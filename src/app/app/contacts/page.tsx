@@ -35,6 +35,8 @@ import {
   resolveSortOption,
   countVisibleTableColumns,
 } from "@/lib/list-toolbar-url";
+import { showingInactive } from "@/lib/active-view";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
 
 const CONTACTS_SORT: ListSortOption[] = [
   {
@@ -115,7 +117,8 @@ export default async function ContactsPage({
   let query = supabase
     .from("contacts")
     .select("*")
-    .eq("workspace_id", ws.id);
+    .eq("workspace_id", ws.id)
+    .eq("active", !showingInactive(sp));
   if (q) {
     const p = `%${q}%`;
     query = query.or(`email.ilike.${p},phone.ilike.${p}`);
@@ -129,6 +132,7 @@ export default async function ContactsPage({
     .from("organizations")
     .select("id,name")
     .eq("workspace_id", ws.id)
+    .eq("active", true)
     .order("name");
   const organizationsForForm = orgSelectRows ?? [];
 
@@ -163,6 +167,7 @@ export default async function ContactsPage({
       <PageHeader
         breadcrumb="Contactos"
         viewLabel="Lista"
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <ContactFormDialog

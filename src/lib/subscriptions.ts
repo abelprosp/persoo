@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 
 export type WorkspaceSubscriptionRow = {
   id: string;
@@ -22,7 +22,7 @@ export type WorkspaceSubscriptionRow = {
  * Ignora erros silenciosamente se as tabelas ainda não existirem.
  */
 export async function attachTrialToWorkspace(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   workspaceId: string
 ): Promise<void> {
   const { data: plan, error: planErr } = await supabase
@@ -60,7 +60,7 @@ export async function attachTrialToWorkspace(
 }
 
 export async function getWorkspaceSubscription(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   workspaceId: string
 ): Promise<WorkspaceSubscriptionRow | null> {
   const { data, error } = await supabase

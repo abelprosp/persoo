@@ -20,6 +20,11 @@ import { relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { LeadKanbanCardVisibility } from "@/lib/kanban-schema";
 import { Pencil } from "lucide-react";
+import {
+  CustomDataEditor,
+  customValuesFromRow,
+} from "@/components/crm/custom-data-editor";
+import { RecordActiveButton } from "@/components/crm/record-active-button";
 
 export type LeadRow = {
   id: string;
@@ -30,6 +35,7 @@ export type LeadRow = {
   owner_name: string | null;
   last_activity_at: string | null;
   custom_data?: unknown;
+  active?: boolean;
   card_enrichment?: CardEnrichment | null;
 };
 
@@ -51,6 +57,9 @@ export function LeadKanbanCard({
   const [email, setEmail] = useState(item.email ?? "");
   const [phone, setPhone] = useState(item.phone ?? "");
   const [ownerName, setOwnerName] = useState(item.owner_name ?? "");
+  const [customValues, setCustomValues] = useState(() =>
+    customValuesFromRow(item, customFields)
+  );
 
   async function onSave() {
     setPending(true);
@@ -66,6 +75,7 @@ export function LeadKanbanCard({
           email,
           phone,
           owner_name: ownerName,
+          custom_data: customValues,
         },
       }),
     });
@@ -133,7 +143,13 @@ export function LeadKanbanCard({
         cardId={item.id}
         enrichment={item.card_enrichment}
       />
-      <div className="mt-2 flex items-center justify-end border-t border-border/60 pt-2">
+      <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2">
+        <RecordActiveButton
+          entity="leads"
+          id={item.id}
+          active={item.active}
+          stopPropagation
+        />
         <Button
           variant="ghost"
           size="icon"
@@ -158,6 +174,13 @@ export function LeadKanbanCard({
             <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" />
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" />
             <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Responsável" />
+            <CustomDataEditor
+              fields={customFields}
+              values={customValues}
+              onChange={(key, value) =>
+                setCustomValues((prev) => ({ ...prev, [key]: value }))
+              }
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

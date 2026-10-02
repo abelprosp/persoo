@@ -30,6 +30,9 @@ import {
   pickSortId,
   resolveSortOption,
 } from "@/lib/list-toolbar-url";
+import { showingInactive } from "@/lib/active-view";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
+import { ProductRowActions } from "@/components/crm/product-row-actions";
 import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 
 const PRODUCT_SORT: ListSortOption[] = [
@@ -106,7 +109,8 @@ export default async function ProductsPage({
   let query = supabase
     .from("products")
     .select("*")
-    .eq("workspace_id", ws.id);
+    .eq("workspace_id", ws.id)
+    .eq("active", !showingInactive(sp));
   if (q) {
     const p = `%${q}%`;
     query = query.or(`name.ilike.${p},sku.ilike.${p},description.ilike.${p}`);
@@ -123,6 +127,7 @@ export default async function ProductsPage({
       <PageHeader
         breadcrumb={getModuleLabel(schema, "products")}
         viewLabel="Lista"
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <CreateProductDialog
@@ -178,7 +183,16 @@ export default async function ProductsPage({
                     <TableCell>
                       <Checkbox disabled />
                     </TableCell>
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{row.name}</span>
+                        <ProductRowActions
+                          product={row}
+                          customFields={extraCols}
+                          fieldLabels={productFieldLabels}
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {row.sku ?? "—"}
                     </TableCell>

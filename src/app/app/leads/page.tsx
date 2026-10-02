@@ -9,9 +9,16 @@ import {
 } from "@/lib/kanban-schema";
 import { LeadsPageClient } from "@/app/app/leads/leads-page-client";
 import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
+import { showingInactive } from "@/lib/active-view";
 import { redirect } from "next/navigation";
 
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ inativos?: string }>;
+}) {
+  const sp = await searchParams;
+  const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,7 +43,8 @@ export default async function LeadsPage() {
   const { data: leads } = await supabase
     .from("leads")
     .select("*")
-    .eq("workspace_id", ws.id);
+    .eq("workspace_id", ws.id)
+    .eq("active", !onlyInactive);
 
   const items = leads ?? [];
   const byCol: Record<string, Record<string, unknown>[]> = {};

@@ -10,7 +10,8 @@ export type AiEntityName =
   | "leads"
   | "deals"
   | "tasks"
-  | "products";
+  | "products"
+  | "notes";
 
 /** Chaves para `moduleLabels` no JSON da IA (menu lateral). */
 export type NavModuleKey =
