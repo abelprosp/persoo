@@ -106,6 +106,12 @@ export function evaluateWorkspaceAccess(
 
   const now = Date.now();
 
+  if (!["trialing", "active", "past_due", "canceled", "expired"].includes(sub.status) ||
+      (sub.status === "trialing" && (!sub.trial_ends_at || !Number.isFinite(Date.parse(sub.trial_ends_at)))) ||
+      (sub.status === "active" && sub.current_period_end !== null && !Number.isFinite(Date.parse(sub.current_period_end)))) {
+    return { ok: false, reason: "subscription_expired", message: "Não foi possível validar a assinatura. Contate o suporte." };
+  }
+
   if (sub.status === "past_due") {
     return {
       ok: false,
@@ -128,7 +134,7 @@ export function evaluateWorkspaceAccess(
 
   if (sub.status === "trialing" && sub.trial_ends_at) {
     const end = new Date(sub.trial_ends_at).getTime();
-    if (now > end) {
+    if (now >= end) {
       return {
         ok: false,
         reason: "trial_expired",
@@ -139,7 +145,7 @@ export function evaluateWorkspaceAccess(
 
   if (sub.status === "active" && sub.current_period_end) {
     const end = new Date(sub.current_period_end).getTime();
-    if (now > end) {
+    if (now >= end) {
       return {
         ok: false,
         reason: "subscription_expired",

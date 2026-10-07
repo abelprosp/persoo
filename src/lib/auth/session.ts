@@ -1,5 +1,5 @@
 import type { AppUser } from "@/lib/db/types";
-import { adminQuery } from "@/lib/db/pool";
+import { adminQuery, type QueryRunner } from "@/lib/db/pool";
 
 export const SESSION_COOKIE = "persoo_session";
 const SESSION_SECONDS = 60 * 60 * 24 * 14;
@@ -75,9 +75,9 @@ function safeEqual(a: string, b: string): boolean {
 export async function signSession(user: {
   id: string;
   email: string;
-}): Promise<string> {
+}, run: QueryRunner = adminQuery): Promise<string> {
   getAuthSecret();
-  const result = await adminQuery("SELECT session_version FROM auth.users WHERE id=$1", [user.id]);
+  const result = await run("SELECT session_version FROM auth.users WHERE id=$1", [user.id]);
   if (!result.rows[0]) throw new Error("Conta não encontrada.");
   const payload: SessionPayload = {
     sub: user.id,
@@ -88,7 +88,7 @@ export async function signSession(user: {
   };
   const body = textToBase64Url(JSON.stringify(payload));
   const sig = await sign(body);
-  await adminQuery("INSERT INTO auth.sessions(id,user_id,expires_at) VALUES($1,$2,to_timestamp($3))", [payload.sid, user.id, payload.exp]);
+  await run("INSERT INTO auth.sessions(id,user_id,expires_at) VALUES($1,$2,to_timestamp($3))", [payload.sid, user.id, payload.exp]);
   return `${body}.${sig}`;
 }
 

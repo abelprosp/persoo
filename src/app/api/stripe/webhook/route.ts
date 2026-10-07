@@ -59,6 +59,7 @@ export async function POST(request: Request) {
         });
         break;
       }
+      case "customer.subscription.created":
       case "customer.subscription.updated": {
         const raw = event.data.object as Stripe.Subscription;
         const stripeSub = await stripe.subscriptions.retrieve(raw.id, {
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
         await markWorkspaceSubscriptionCanceledByStripeId(admin, stripeSub.id);
         break;
       }
+      case "invoice.paid":
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const parent = invoice.parent;
@@ -82,7 +84,12 @@ export async function POST(request: Request) {
         const subId =
           typeof subRef === "string" ? subRef : subRef && "id" in subRef ? subRef.id : null;
         if (subId) {
-          await markWorkspaceSubscriptionPastDueByStripeId(admin, subId);
+          if (event.type === "invoice.paid") {
+            const subscription = await stripe.subscriptions.retrieve(subId, { expand: ["items.data"] });
+            await upsertWorkspaceSubscriptionFromStripe(admin, subscription);
+          } else {
+            await markWorkspaceSubscriptionPastDueByStripeId(admin, subId);
+          }
         }
         break;
       }

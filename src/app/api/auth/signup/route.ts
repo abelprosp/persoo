@@ -1,6 +1,6 @@
 import { hashPassword } from "@/lib/auth/password";
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/auth/session";
-import { adminQuery } from "@/lib/db/pool";
+import { transaction } from "@/lib/db/pool";
 import { credentialsSchema, passwordSchema, readJson, rateLimit, requestAddress } from "@/lib/security";
 import { z } from "zod";
 import { NextResponse } from "next/server";
@@ -12,8 +12,10 @@ export async function POST(request: Request) {
     if (!parsed.success) return NextResponse.json({ error: "Informe nome, e-mail válido e senha de 12 a 128 caracteres." }, { status: 400 });
     const { email, password, fullName } = parsed.data;
     const hash = await hashPassword(password);
-    const created = await adminQuery("INSERT INTO auth.users(email,encrypted_password,raw_user_meta_data) VALUES($1,$2,$3::jsonb) RETURNING id,email", [email, hash, JSON.stringify({ full_name: fullName })]);
-    const token = await signSession(created.rows[0]);
+    const token = await transaction(null, async run => {
+      const created = await run("INSERT INTO auth.users(email,encrypted_password,raw_user_meta_data) VALUES($1,$2,$3::jsonb) RETURNING id,email", [email, hash, JSON.stringify({ full_name: fullName })]);
+      return signSession(created.rows[0], run);
+    });
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
     return response;

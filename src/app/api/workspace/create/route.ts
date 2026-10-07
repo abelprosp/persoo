@@ -1,73 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSuperAdmin } from "@/lib/admin";
-import {
-  attachTrialToWorkspace,
-  workspaceCreationLimit,
-} from "@/lib/subscriptions";
-import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/workspace";
-import { cookies } from "next/headers";
+import { provisionWorkspace } from "@/lib/workspace-provisioning";
+import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/workspace-cookie";
+import { readJson } from "@/lib/security";
+import { z } from "zod";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+export async function POST(request: Request) {
+  const db = await createClient();
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  try {
+    const body = z.object({ name: z.string().trim().min(1).max(120).default("Novo espaço") }).parse(await readJson(request, 4096));
+    const workspace = await provisionWorkspace(user.id, body.name);
+    const response = NextResponse.json({ workspace });
+    response.cookies.set(ACTIVE_WORKSPACE_COOKIE, workspace.id, { path: "/", maxAge: 60 * 60 * 24 * 400, sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
+    return response;
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof z.ZodError ? "Nome do espaço inválido." : error instanceof Error ? error.message : "Não foi possível criar o espaço." }, { status: 400 });
   }
-
-  if (!(await isSuperAdmin(supabase, user))) {
-    const gate = await workspaceCreationLimit(supabase, user.id);
-    if (!gate.ok) {
-      return NextResponse.json({ error: gate.message }, { status: gate.status });
-    }
-  }
-
-  const body = await req.json().catch(() => ({}));
-  const rawName = typeof body.name === "string" ? body.name.trim() : "";
-  const name = rawName.length > 0 ? rawName.slice(0, 120) : "Novo espaço";
-
-  const { data: created, error } = await supabase
-    .from("workspaces")
-    .insert({
-      name,
-      owner_id: user.id,
-      industry: "Geral",
-    })
-    .select("id, name, industry, ai_schema")
-    .single();
-
-  if (error || !created) {
-    return NextResponse.json(
-      { error: error?.message ?? "Falha ao criar espaço" },
-      { status: 500 }
-    );
-  }
-
-  const { error: memErr } = await supabase.from("workspace_members").insert({
-    workspace_id: created.id,
-    user_id: user.id,
-    role: "owner",
-  });
-
-  if (memErr) {
-    return NextResponse.json(
-      { error: memErr.message },
-      { status: 500 }
-    );
-  }
-
-  await attachTrialToWorkspace(supabase, created.id);
-
-  const cookieStore = await cookies();
-  cookieStore.set(ACTIVE_WORKSPACE_COOKIE, created.id, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 400,
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-
-  return NextResponse.json({ workspace: created });
 }

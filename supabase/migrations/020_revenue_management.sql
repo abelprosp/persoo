@@ -59,12 +59,22 @@ create table if not exists workspace_member_scopes (
 do $$ declare t text; begin
  foreach t in array array['sales_pipelines','sales_pipeline_stages','sales_goals','sales_proposals','sales_proposal_items','workspace_member_scopes'] loop
   execute format('alter table %I enable row level security',t);
-  execute format('create policy tenant_read on %I for select to authenticated using (workspace_id in (select public.user_workspace_ids()) and public.workspace_access_allowed(workspace_id))',t);
+  execute format('drop policy if exists tenant_read on %I',t);
+  if t='sales_pipeline_stages' then
+   execute 'create policy tenant_read on sales_pipeline_stages for select to authenticated using (pipeline_id in (select id from sales_pipelines))';
+  elsif t='sales_proposal_items' then
+   execute 'create policy tenant_read on sales_proposal_items for select to authenticated using (proposal_id in (select id from sales_proposals))';
+  else
+   execute format('create policy tenant_read on %I for select to authenticated using (workspace_id in (select public.user_workspace_ids()) and public.workspace_access_allowed(workspace_id))',t);
+  end if;
   execute format('grant select on %I to authenticated',t);
  end loop;
 end $$;
+drop policy if exists proposal_insert on sales_proposals;
 create policy proposal_insert on sales_proposals for insert to authenticated with check(created_by=auth.uid() and workspace_id in(select public.user_workspace_ids()));
+drop policy if exists proposal_item_insert on sales_proposal_items;
 create policy proposal_item_insert on sales_proposal_items for insert to authenticated with check(proposal_id in(select id from sales_proposals where created_by=auth.uid()));
 grant insert on sales_proposals,sales_proposal_items to authenticated;
+drop policy if exists scope_manage on workspace_member_scopes;
 create policy scope_manage on workspace_member_scopes for all to authenticated using(public.user_can_manage_workspace_members(workspace_id)) with check(public.user_can_manage_workspace_members(workspace_id));
 grant insert,update,delete on workspace_member_scopes to authenticated;

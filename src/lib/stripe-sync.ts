@@ -18,7 +18,7 @@ export function mapStripeSubscriptionStatus(
     case "incomplete_expired":
       return "canceled";
     case "incomplete":
-      return "trialing";
+      return "past_due";
     case "paused":
       return "past_due";
     default:
