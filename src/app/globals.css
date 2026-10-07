@@ -128,3 +128,39 @@
     @apply font-sans;
   }
 }
+
+/* Workspace identity: soft canvas, generous cards and blue navigation. */
+.persoo-workspace {
+  --primary: #1765f5;
+  --primary-foreground: #ffffff;
+  --ring: #1765f5;
+  --sidebar: #eff1f4;
+  --sidebar-accent: #e3ebff;
+  --sidebar-border: transparent;
+  --radius: 1rem;
+  color: #172132;
+}
+.persoo-workspace [data-slot="sidebar-inner"] { background: #eff1f4; }
+.persoo-workspace [data-slot="sidebar-menu-button"] { border-radius: 999px; }
+.persoo-workspace [data-slot="sidebar-menu-button"][data-active="true"] {
+  background: #1765f5 !important;
+  color: white !important;
+  box-shadow: 0 5px 15px #1765f524;
+  --tw-ring-color: transparent;
+}
+.persoo-workspace [data-slot="card"] {
+  border: 1px solid #ffffff;
+  border-radius: 1.75rem;
+  box-shadow: 0 4px 24px #17213204;
+  --tw-ring-color: transparent;
+}
+.persoo-workspace [data-slot="button"],
+.persoo-workspace [data-slot="select-trigger"] { border-radius: 999px; }
+.persoo-workspace [data-slot="card-title"] { letter-spacing: -0.025em; }
+.persoo-ai-orbit {
+  width: 170px; height: 170px; border-radius: 50%;
+  border: 1px solid #79a9ff55;
+  background: repeating-radial-gradient(ellipse at 40% 40%, transparent 0 5px, #85b6ff40 6px 7px, transparent 8px 11px);
+  transform: rotate(-25deg);
+  box-shadow: inset 0 0 40px #1765f570, 0 0 55px #1765f520;
+}

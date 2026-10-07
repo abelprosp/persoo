@@ -40,7 +40,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <div><p className="mb-1 text-xs font-medium uppercase tracking-[0.15em] text-slate-400">Visão geral</p><h1 className="text-3xl font-semibold tracking-tight">Sua operação de vendas</h1></div>
         <div className="flex flex-wrap items-center gap-2">
           <SeedDemoButton />
           <ClearDemoButton />

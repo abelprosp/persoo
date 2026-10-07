@@ -105,18 +105,20 @@ export default async function DashboardPage({
       </div>
       <DashboardToolbar days={days} team={team} prefs={prefs}>
         {hasVertical ? (
-          <div className="rounded-xl border border-violet-200/80 bg-violet-50/60 px-4 py-3 text-sm">
-            <p className="font-medium text-violet-950">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm">
+            <p className="font-medium text-blue-950">
               {ws.industry && ws.industry !== "Geral"
                 ? `Personalização ativa · ${ws.industry}`
                 : "Personalização ativa"}
             </p>
             {aiSummary && (
-              <p className="mt-1 text-violet-900/80">{aiSummary}</p>
+              <p className="mt-1 text-blue-900/80">{aiSummary}</p>
             )}
           </div>
         ) : null}
       </DashboardToolbar>
+
+      <DashboardCharts trendData={series.rows} revenue={Number(metric.revenue)} forecast={Number(metric.forecast)} />
 
       {kpiRows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -164,7 +166,7 @@ export default async function DashboardPage({
         </>
       )}
 
-      <p className="text-xs text-muted-foreground">Novos registros por data de criação; ganhos por data de fechamento. Negócios abertos representam o estoque atual. Datas em America/Sao_Paulo. Registros antigos sem data de fechamento não entram no período.</p><DashboardCharts trendData={series.rows} revenue={Number(metric.revenue)} forecast={Number(metric.forecast)} />
+      <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Novos registros por data de criação; ganhos por data de fechamento. Negócios abertos representam o estoque atual. Datas em America/Sao_Paulo. Registros antigos sem data de fechamento não entram no período.</p>
     </div>
   );
 }

@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   description:
     "CRM SaaS com IA para personalizar campos e rótulos por vertical comercial.",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/persoo-brand.png",
+    apple: "/persoo-brand.png",
   },
 };
 
