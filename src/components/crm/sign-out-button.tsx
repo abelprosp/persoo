@@ -26,7 +26,7 @@ export function SignOutButton() {
       className={cn(
         "w-full justify-start text-muted-foreground",
         iconOnly &&
-          "size-9 min-h-9 min-w-9 justify-center rounded-lg p-0 hover:bg-white/80"
+          "mx-auto size-9 min-h-9 min-w-9 justify-center rounded-lg p-0 hover:bg-white/80"
       )}
       type="button"
       title={iconOnly ? "Sair" : undefined}
