@@ -76,7 +76,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
         >
           <SelectTrigger className="w-[200px] bg-white">
             <CalendarDays className="mr-2 size-4" />
-            <SelectValue placeholder="Período" />
+            <SelectValue placeholder="Período">{`Últimos ${days} dias`}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="7">Últimos 7 dias</SelectItem>
@@ -92,7 +92,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
         >
           <SelectTrigger className="w-[200px] bg-white">
             <User className="mr-2 size-4" />
-            <SelectValue placeholder="Utilizador" />
+            <SelectValue placeholder="Utilizador">{team === "sales" ? "Com responsável" : "Todos"}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="sales">Com responsável</SelectItem>

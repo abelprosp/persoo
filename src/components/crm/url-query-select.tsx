@@ -54,7 +54,9 @@ function UrlQuerySelectInner({
       }}
     >
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder ?? allLabel} />
+        <SelectValue placeholder={placeholder ?? allLabel}>
+          {options.find((option) => option.value === value)?.label ?? placeholder ?? allLabel}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (
