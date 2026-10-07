@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,8 +40,8 @@ export function DashboardEditDialog({ open, onOpenChange, prefs }: Props) {
     {} as Record<KpiId, boolean>
   );
 
-  useEffect(() => {
-    if (!open) return;
+  const [previousOpen,setPreviousOpen]=useState(false);
+  if(previousOpen!==open){setPreviousOpen(open); if(open){
     const l = {} as Record<KpiId, string>;
     const v = {} as Record<KpiId, boolean>;
     for (const def of KPI_DEFINITIONS) {
@@ -51,7 +51,7 @@ export function DashboardEditDialog({ open, onOpenChange, prefs }: Props) {
     setLabels(l);
     setVisible(v);
     setError(null);
-  }, [open, prefs]);
+  }}
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

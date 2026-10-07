@@ -21,6 +21,11 @@ import { relativeTime } from "@/lib/format";
 import type { CustomFieldDef } from "@/lib/ai-schema";
 import type { TaskKanbanCardVisibility } from "@/lib/kanban-schema";
 import { cn } from "@/lib/utils";
+import {
+  CustomDataEditor,
+  customValuesFromRow,
+} from "@/components/crm/custom-data-editor";
+import { RecordActiveButton } from "@/components/crm/record-active-button";
 
 export type TaskRow = {
   id: string;
@@ -31,6 +36,7 @@ export type TaskRow = {
   assignee_name: string | null;
   updated_at: string | null;
   custom_data?: unknown;
+  active?: boolean;
   card_enrichment?: CardEnrichment | null;
 };
 
@@ -52,16 +58,21 @@ export function TaskKanbanCard({
   const router = useRouter();
   const [openDetails, setOpenDetails] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error,setError] = useState("");
   const [pending, setPending] = useState(false);
   const [title, setTitle] = useState(item.title ?? "");
   const [priority, setPriority] = useState(item.priority ?? "medium");
   const [assigneeName, setAssigneeName] = useState(item.assignee_name ?? "");
   const [dueAt, setDueAt] = useState(
-    item.due_at ? new Date(item.due_at).toISOString().slice(0, 16) : ""
+    item.due_at ? new Date(new Date(item.due_at).getTime()-new Date(item.due_at).getTimezoneOffset()*60000).toISOString().slice(0,16) : ""
+  );
+  const [customValues, setCustomValues] = useState(() =>
+    customValuesFromRow(item, customFields)
   );
 
   async function onSave() {
-    setPending(true);
+    setError(""); setPending(true);
+    try {
     const res = await fetch("/api/kanban/update-card", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -72,30 +83,41 @@ export function TaskKanbanCard({
           title,
           priority,
           assignee_name: assigneeName,
-          due_at: dueAt,
+          due_at: dueAt ? new Date(dueAt).toISOString() : null,
+          custom_data: customValues,
         },
       }),
     });
     setPending(false);
-    if (!res.ok) return;
+    if (!res.ok) { const data=await res.json(); setError(data.error || "Não foi possível salvar."); return; }
     setOpen(false);
     router.refresh();
+    } catch { setError("Falha de conexão. Tente novamente."); } finally { setPending(false); }
   }
 
   const showCustom = visibility.custom && customFields.length > 0;
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
+      tabIndex={0}
+      aria-label="Abrir detalhes do cartão"
+      onKeyDown={e=>{if(e.target===e.currentTarget && (e.key==="Enter" || e.key===" ")){e.preventDefault();setOpenDetails(true);}}}
       onClick={(e) => {
         if (!e.currentTarget.contains(e.target as Node)) return;
         if (open || openDetails) return;
         setOpenDetails(true);
       }}
     >
-      <div className="mb-1 flex items-center justify-end">
+      <div className="mb-1 flex items-center justify-end gap-1">
+        <RecordActiveButton
+          entity="tasks"
+          id={item.id}
+          active={item.active}
+          stopPropagation
+        />
         <Button
           variant="ghost"
-          size="icon"
+          size="icon" aria-label="Editar cartão"
           className="size-7"
           type="button"
           onClick={(e) => {
@@ -178,7 +200,7 @@ export function TaskKanbanCard({
             <DialogTitle>Editar tarefa</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2">
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Título" placeholder="Título" />
             <select
               value={priority ?? "medium"}
               onChange={(e) => setPriority(e.target.value)}
@@ -188,10 +210,17 @@ export function TaskKanbanCard({
               <option value="medium">Média</option>
               <option value="high">Alta</option>
             </select>
-            <Input value={assigneeName} onChange={(e) => setAssigneeName(e.target.value)} placeholder="Atribuído" />
+            <Input value={assigneeName} onChange={(e) => setAssigneeName(e.target.value)} aria-label="Atribuído" placeholder="Atribuído" />
             <Input value={dueAt} onChange={(e) => setDueAt(e.target.value)} type="datetime-local" />
+            <CustomDataEditor
+              fields={customFields}
+              values={customValues}
+              onChange={(key, value) =>
+                setCustomValues((prev) => ({ ...prev, [key]: value }))
+              }
+            />
           </div>
-          <DialogFooter>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}<DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>

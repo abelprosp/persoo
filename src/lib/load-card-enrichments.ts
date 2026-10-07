@@ -1,8 +1,8 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 import { rowToCardEnrichment } from "@/lib/card-enrichment";
 
 export async function attachCardEnrichmentsToRows(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   workspaceId: string,
   entityType: "lead" | "deal" | "task",
   rows: Record<string, unknown>[]

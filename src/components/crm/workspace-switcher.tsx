@@ -12,6 +12,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, ChevronDown, Plus } from "lucide-react";
+import { TRIAL_DAYS, TRIAL_MAX_WORKSPACES } from "@/lib/plans";
 
 export type WorkspaceOption = { id: string; name: string };
 
@@ -33,6 +35,7 @@ export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const active = workspaces.find((w) => w.id === activeId) ?? workspaces[0];
   const label = active?.name ?? "Espaço de trabalho";
@@ -56,17 +59,23 @@ export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
     e.preventDefault();
     const n = newName.trim() || "Novo espaço";
     setBusy(true);
+    setCreateError(null);
     try {
       const res = await fetch("/api/workspace/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: n }),
       });
-      if (res.ok) {
-        setDialogOpen(false);
-        setNewName("");
-        router.push("/app/settings/ai?novo=1");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setCreateError(
+          data.error ?? "Não foi possível criar o CRM. Tente novamente."
+        );
+        return;
       }
+      setDialogOpen(false);
+      setNewName("");
+      router.push("/app/settings/ai?novo=1");
     } finally {
       setBusy(false);
     }
@@ -98,7 +107,12 @@ export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDialogOpen(true)}>
+          <DropdownMenuItem
+            onClick={() => {
+              setCreateError(null);
+              setDialogOpen(true);
+            }}
+          >
             <Plus className="mr-2 size-4" />
             Novo espaço de trabalho
           </DropdownMenuItem>
@@ -109,7 +123,11 @@ export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
         <DialogContent className="sm:max-w-md">
           <form onSubmit={createWs}>
             <DialogHeader>
-              <DialogTitle>Novo espaço de trabalho</DialogTitle>
+              <DialogTitle>Novo CRM</DialogTitle>
+              <DialogDescription>
+                No teste grátis pode criar até {TRIAL_MAX_WORKSPACES} CRMs. Cada
+                um tem {TRIAL_DAYS} dias de teste.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2 py-4">
               <Label htmlFor="ws-name">Nome</Label>
@@ -120,6 +138,11 @@ export function WorkspaceSwitcher({ workspaces, activeId }: Props) {
                 placeholder="Ex.: Equipa comercial Norte"
                 autoComplete="organization"
               />
+              {createError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {createError}
+                </p>
+              ) : null}
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button

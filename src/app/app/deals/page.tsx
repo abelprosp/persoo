@@ -1,3 +1,5 @@
+import { pagination } from "@/lib/pagination";
+import { DataTableFooter } from "@/components/crm/table-footer";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import { getCustomFields, getEntityLabel } from "@/lib/ai-schema";
@@ -9,9 +11,17 @@ import {
 } from "@/lib/kanban-schema";
 import { DealsPageClient } from "@/app/app/deals/deals-page-client";
 import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
+import { showingInactive } from "@/lib/active-view";
 import { redirect } from "next/navigation";
 
-export default async function DealsPage() {
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ inativos?: string; page?: string; size?: string }>;
+}) {
+  const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
+  const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
     data: { user },
@@ -44,10 +54,12 @@ export default async function DealsPage() {
     ),
   };
 
-  const { data: deals } = await supabase
+  const { data: deals, count, error } = await supabase
     .from("deals")
-    .select("*")
-    .eq("workspace_id", ws.id);
+    .select("*",{count:"exact"})
+    .eq("workspace_id", ws.id)
+    .eq("active", !onlyInactive).order("updated_at",{ascending:false}).order("id").range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar.");
 
   const items = deals ?? [];
   const byCol: Record<string, Record<string, unknown>[]> = {};
@@ -72,7 +84,7 @@ export default async function DealsPage() {
   const dealCardVisibility = getDealKanbanCardVisibility(schema);
 
   return (
-    <DealsPageClient
+    <div className="space-y-4"><p className="text-xs text-muted-foreground">Cartões desta página. Use a paginação para acessar os demais registros.</p><DealsPageClient
       kanbanColumns={kanbanColumns}
       kanbanEditableColumns={kanbanEditableColumns}
       createStageOptions={createStageOptions}
@@ -81,6 +93,6 @@ export default async function DealsPage() {
       customFields={dealCustomFields}
       fieldLabels={dealFieldLabels}
       cardVisibility={dealCardVisibility}
-    />
+    /><DataTableFooter total={count ?? 0} page={page} pageSize={pageSize} params={sp}/></div>
   );
 }

@@ -59,7 +59,7 @@ export function KanbanCardDetailsDialog({
   onOpenChange,
 }: Props) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [nowMs, setNowMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +76,7 @@ export function KanbanCardDetailsDialog({
   );
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    try {
     const res = await fetch(
       `/api/kanban/card-details?variant=${variant}&id=${cardId}`,
       { cache: "no-store" }
@@ -101,6 +100,8 @@ export function KanbanCardDetailsDialog({
     setColumnHistory(j.columnHistory ?? []);
     setEnrichmentDraft(j.enrichment ?? emptyCardEnrichment());
     setNowMs(Date.now());
+    setError(null);
+    } catch {setError("Falha de conexão ao carregar detalhes.");} finally {setLoading(false);}
   }, [variant, cardId]);
 
   useEffect(() => {

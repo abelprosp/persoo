@@ -1,7 +1,7 @@
 "use client";
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,40 +9,83 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  PRO_PLAN,
+  STRIPE_CHECKOUT_UNAVAILABLE_MESSAGE,
+  proMonthlyPriceLabel,
+} from "@/lib/plans";
 
 type Props = {
+  workspaceId: string;
   workspaceName: string;
+  checkoutReady: boolean;
 };
 
-const ACTIVATION_PHONE_E164 = "+5551995501677";
-const ACTIVATION_PHONE_DISPLAY = "(51) 99550-1677";
+export function BillingStripeClient({
+  workspaceId,
+  workspaceName,
+  checkoutReady,
+}: Props) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const price = proMonthlyPriceLabel();
 
-export function BillingStripeClient({ workspaceName }: Props) {
-  const telHref = `tel:${ACTIVATION_PHONE_E164}`;
+  async function subscribe() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Não foi possível iniciar a assinatura.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Não foi possível iniciar a assinatura.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Card className="border-emerald-200/80 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Ativação do plano Pro</CardTitle>
+        <CardTitle className="text-lg">Plano {PRO_PLAN.name}</CardTitle>
         <CardDescription>
-          Ligue para o PersooCRM e indique o espaço «{workspaceName}» para
-          ativar o Pro.
+          {price} para o espaço «{workspaceName}».
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <a
-          href={telHref}
-          className={cn(
-            buttonVariants(),
-            "w-fit bg-emerald-700 text-white hover:bg-emerald-800"
-          )}
-        >
-          {`Ligar ${ACTIVATION_PHONE_DISPLAY}`}
-        </a>
-        <p className="text-xs text-muted-foreground">
-          Abre a app de telefone no telemóvel ou computador. A ativação é
-          concluída manualmente após o contacto.
+        <p className="text-2xl font-semibold tracking-tight">
+          {price}
         </p>
+        {checkoutReady ? (
+          <Button
+            type="button"
+            className="w-fit bg-emerald-700 text-white hover:bg-emerald-800"
+            disabled={busy}
+            onClick={() => void subscribe()}
+          >
+            {busy ? "A abrir pagamento…" : "Assinar"}
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {STRIPE_CHECKOUT_UNAVAILABLE_MESSAGE}
+          </p>
+        )}
+        {error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

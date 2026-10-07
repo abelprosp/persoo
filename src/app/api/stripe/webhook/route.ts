@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createDbClient } from "@/lib/db/client";
+import { transaction } from "@/lib/db/pool";
 import {
   markWorkspaceSubscriptionCanceledByStripeId,
   markWorkspaceSubscriptionPastDueByStripeId,
@@ -37,15 +38,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  let admin;
   try {
-    admin = createAdminClient();
-  } catch (e) {
-    console.error("[stripe webhook] admin client", e);
-    return NextResponse.json({ error: "Supabase service role em falta" }, { status: 503 });
-  }
-
-  try {
+    await transaction(null, async run => {
+    // Transaction lock serializes duplicate deliveries; rollback keeps failures retryable.
+    await run("SELECT pg_advisory_xact_lock(hashtext($1))", ["stripe-events"]);
+    if ((await run("SELECT id FROM stripe_events WHERE id=$1", [event.id])).rowCount) return;
+    const admin = createDbClient({user:null,mode:"admin",run});
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -61,6 +59,7 @@ export async function POST(request: Request) {
         });
         break;
       }
+      case "customer.subscription.created":
       case "customer.subscription.updated": {
         const raw = event.data.object as Stripe.Subscription;
         const stripeSub = await stripe.subscriptions.retrieve(raw.id, {
@@ -74,6 +73,7 @@ export async function POST(request: Request) {
         await markWorkspaceSubscriptionCanceledByStripeId(admin, stripeSub.id);
         break;
       }
+      case "invoice.paid":
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const parent = invoice.parent;
@@ -84,13 +84,20 @@ export async function POST(request: Request) {
         const subId =
           typeof subRef === "string" ? subRef : subRef && "id" in subRef ? subRef.id : null;
         if (subId) {
-          await markWorkspaceSubscriptionPastDueByStripeId(admin, subId);
+          if (event.type === "invoice.paid") {
+            const subscription = await stripe.subscriptions.retrieve(subId, { expand: ["items.data"] });
+            await upsertWorkspaceSubscriptionFromStripe(admin, subscription);
+          } else {
+            await markWorkspaceSubscriptionPastDueByStripeId(admin, subId);
+          }
         }
         break;
       }
       default:
         break;
     }
+    await run("INSERT INTO stripe_events(id,type) VALUES($1,$2)", [event.id,event.type]);
+    });
   } catch (e) {
     console.error("[stripe webhook] handler", event.type, e);
     return NextResponse.json({ error: "Erro ao processar" }, { status: 500 });

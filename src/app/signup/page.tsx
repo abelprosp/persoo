@@ -1,5 +1,7 @@
 "use client";
 
+import { safeRedirect } from "@/lib/safe-redirect";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +27,7 @@ function getPublicAppOrigin(): string {
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/app/dashboard";
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,6 +38,7 @@ function SignupForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    try {
     const supabase = createClient();
     const appOrigin = getPublicAppOrigin();
     const { error: err } = await supabase.auth.signUp({
@@ -53,6 +56,7 @@ function SignupForm() {
     }
     router.push(redirectTo);
     router.refresh();
+    } catch { setError("Falha de conexão. Tente novamente."); } finally { setLoading(false); }
   }
 
   return (
@@ -96,14 +100,15 @@ function SignupForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Palavra-passe</Label>
-              <Input
+              <Label htmlFor="password">Senha (mínimo de 12 caracteres)</Label>
+              <PasswordInput
                 id="password"
                 type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
+                minLength={12}
+                maxLength={128}
                 required
               />
             </div>

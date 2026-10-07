@@ -106,6 +106,5 @@ export type TeamScope = "all" | "sales";
 
 /** Por omissão, alinhado com o UI anterior: &quot;Equipa de vendas&quot;. */
 export function parseTeamScope(raw: string | undefined): TeamScope {
-  if (raw === "all") return "all";
-  return "sales";
+  return raw === "sales" ? "sales" : "all";
 }

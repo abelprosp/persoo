@@ -1,3 +1,5 @@
+import { pagination } from "@/lib/pagination";
+import { DataTableFooter } from "@/components/crm/table-footer";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import {
@@ -12,13 +14,17 @@ import {
 } from "@/lib/kanban-schema";
 import { TasksPageClient } from "@/app/app/tasks/tasks-page-client";
 import { attachCardEnrichmentsToRows } from "@/lib/load-card-enrichments";
+import { showingInactive } from "@/lib/active-view";
 import { redirect } from "next/navigation";
 
 export default async function TasksPage({
-  searchParams: _searchParams,
+  searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
+  const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
     data: { user },
@@ -45,11 +51,13 @@ export default async function TasksPage({
     ),
   };
 
-  const { data: rows } = await supabase
+  const { data: rows, count, error } = await supabase
     .from("tasks")
-    .select("*")
+    .select("*",{count:"exact"})
     .eq("workspace_id", ws.id)
-    .order("updated_at", { ascending: false });
+    .eq("active", !onlyInactive)
+    .order("updated_at", { ascending: false }).order("id").range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar.");
   const list = rows ?? [];
 
   const byCol: Record<string, Record<string, unknown>[]> = {};
@@ -68,7 +76,7 @@ export default async function TasksPage({
   const kanbanEditableColumns = pipeline.map(({ id, title }) => ({ id, title }));
 
   return (
-    <TasksPageClient
+    <div className="space-y-4"><p className="text-xs text-muted-foreground">Cartões desta página. Use a paginação para acessar os demais registros.</p><TasksPageClient
       kanbanColumns={kanbanColumns}
       kanbanEditableColumns={kanbanEditableColumns}
       createStatusOptions={createStatusOptions}
@@ -77,6 +85,6 @@ export default async function TasksPage({
       customFields={extraCols}
       fieldLabels={taskFieldLabels}
       cardVisibility={taskCardVisibility}
-    />
+    /><DataTableFooter total={count ?? 0} page={page} pageSize={pageSize} params={sp}/></div>
   );
 }

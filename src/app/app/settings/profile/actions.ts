@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@/lib/auth/session";
+import { passwordSchema } from "@/lib/security";
 import { revalidatePath } from "next/cache";
 
 export async function updateProfileFullName(
@@ -34,12 +37,13 @@ export async function updateAccountPassword(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado." };
 
-  if (password.length < 6) {
-    return { error: "A palavra-passe deve ter pelo menos 6 caracteres." };
+  if (!passwordSchema.safeParse(password).success) {
+    return { error: "Use uma senha entre 12 e 128 caracteres." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
+  (await cookies()).delete(SESSION_COOKIE);
 
   revalidatePath("/app/settings/profile");
   return { ok: true };

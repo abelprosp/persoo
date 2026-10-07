@@ -40,7 +40,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <div><p className="mb-1 text-xs font-medium uppercase tracking-[0.15em] text-slate-400">Visão geral</p><h1 className="text-3xl font-semibold tracking-tight">Sua operação de vendas</h1></div>
         <div className="flex flex-wrap items-center gap-2">
           <SeedDemoButton />
           <ClearDemoButton />
@@ -76,7 +76,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
         >
           <SelectTrigger className="w-[200px] bg-white">
             <CalendarDays className="mr-2 size-4" />
-            <SelectValue placeholder="Período" />
+            <SelectValue placeholder="Período">{`Últimos ${days} dias`}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="7">Últimos 7 dias</SelectItem>
@@ -92,10 +92,10 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
         >
           <SelectTrigger className="w-[200px] bg-white">
             <User className="mr-2 size-4" />
-            <SelectValue placeholder="Utilizador" />
+            <SelectValue placeholder="Utilizador">{team === "sales" ? "Com responsável" : "Todos"}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="sales">Equipa de vendas</SelectItem>
+            <SelectItem value="sales">Com responsável</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>

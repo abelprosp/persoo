@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, type DragEvent } from "react";
+import { formatBRL } from "@/lib/format";
+import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -65,6 +67,10 @@ type Props = LeadProps | DealProps | TaskProps;
 
 export function KanbanBoard(props: Props) {
   const { columns, itemsByColumn, onAddClick, variant } = props;
+  const [query,setQuery] = useState("");
+  const [list,setList] = useState(false);
+  const [error,setError] = useState("");
+  const [moving,setMoving] = useState(false);
   const customFields = props.customFields;
   const [localByColumn, setLocalByColumn] = useState(itemsByColumn);
 
@@ -93,7 +99,7 @@ export function KanbanBoard(props: Props) {
     const parsed = parseDrag(raw);
     if (!parsed) return;
     const { id, from } = parsed;
-    if (!id || !from || from === toColumnId) return;
+    if (moving || !id || !from || from === toColumnId) return;
 
     let moved: Record<string, unknown> | null = null;
     const previous = localByColumn;
@@ -108,20 +114,22 @@ export function KanbanBoard(props: Props) {
     setLocalByColumn(next);
 
     if (props.onMoveCard) {
-      const ok = await props.onMoveCard(id, from, toColumnId);
-      if (!ok) setLocalByColumn(previous);
+      setMoving(true); setError("");
+      try { const ok = await props.onMoveCard(id, from, toColumnId); if (!ok) { setLocalByColumn(previous); setError("Não foi possível mover. Atualize a página e tente novamente."); } }
+      catch { setLocalByColumn(previous); setError("Falha de conexão. A movimentação foi desfeita."); }
+      finally { setMoving(false); }
     }
   }
 
   return (
-    <ScrollArea className="w-full pb-4">
-      <div className="flex min-h-[420px] gap-4 pr-4">
+    <div className="space-y-3"><div className="flex flex-wrap gap-2"><Input aria-label="Buscar nos cartões carregados" placeholder="Buscar nos cartões…" value={query} onChange={e=>setQuery(e.target.value)} className="max-w-sm"/><Button variant="outline" aria-pressed={!list} onClick={()=>setList(false)}>Quadro</Button><Button variant="outline" aria-pressed={list} onClick={()=>setList(true)}>Lista</Button></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<ScrollArea className="w-full pb-4">
+      <div className={list ? "flex flex-col gap-4" : "flex min-h-[420px] gap-4 pr-4"}>
         {columns.map((col) => {
-          const items = localByColumn[col.id] ?? [];
+          const items = (localByColumn[col.id] ?? []).filter(item => Object.values(item).some(value => typeof value === "string" && value.toLocaleLowerCase().includes(query.toLocaleLowerCase())));
           return (
             <div
               key={col.id}
-              className="flex w-[300px] shrink-0 flex-col rounded-xl border border-border/80 bg-white/90 shadow-sm"
+              className={cn("flex shrink-0 flex-col rounded-xl border border-border/80 bg-white/90 shadow-sm", list ? "w-full" : "w-[300px]")}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => void handleDrop(col.id, e)}
             >
@@ -133,7 +141,7 @@ export function KanbanBoard(props: Props) {
                       col.dotClass
                     )}
                   />
-                  <span className="text-sm font-semibold">{col.title}</span>
+                  <span className="text-sm font-semibold">{col.title} <span className="text-muted-foreground">({items.length})</span>{variant === "deal" && <span className="block text-xs text-muted-foreground">{formatBRL(items.reduce((sum,item)=>sum+Number(item.value ?? 0),0))}</span>}</span>
                 </div>
                 <Button
                   variant="ghost"
@@ -141,6 +149,7 @@ export function KanbanBoard(props: Props) {
                   className="size-8"
                   type="button"
                   title="Novo nesta coluna"
+                  aria-label={`Criar em ${col.title}`}
                   onClick={() => onAddClick?.(col.id)}
                 >
                   <Plus className="size-4" />
@@ -152,7 +161,7 @@ export function KanbanBoard(props: Props) {
                   return (
                     <div
                       key={row.id}
-                      draggable
+                      draggable={!moving}
                       onDragStart={(e) =>
                         e.dataTransfer.setData(
                           "application/x-persoo-kanban",
@@ -160,6 +169,7 @@ export function KanbanBoard(props: Props) {
                         )
                       }
                     >
+                      {props.onMoveCard && <select aria-label={`Mover ${String(row.title ?? row.full_name ?? "cartão")}`} className="mb-1 w-full rounded border bg-background p-1 text-xs" value={col.id} disabled={moving} onChange={e => {const target=e.target.value; void handleDrop(target, {preventDefault(){},dataTransfer:{getData(){return JSON.stringify({id:row.id,from:col.id});}}} as unknown as DragEvent<HTMLDivElement>);}}>{columns.map(column=><option key={column.id} value={column.id}>{column.title}</option>)}</select>}
                       {variant === "lead" ? (
                         <LeadKanbanCard
                           item={row as LeadRow}
@@ -188,6 +198,6 @@ export function KanbanBoard(props: Props) {
         })}
       </div>
       <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    </ScrollArea></div>
   );
 }

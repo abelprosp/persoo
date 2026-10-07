@@ -1,4 +1,11 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
+import {
+  PRO_PLAN,
+  TRIAL_DAYS,
+  TRIAL_MAX_WORKSPACES,
+  proMonthlyPriceLabel,
+  trialWorkspaceLimitMessage,
+} from "@/lib/plans";
 
 export type WorkspaceSubscriptionRow = {
   id: string;
@@ -22,7 +29,7 @@ export type WorkspaceSubscriptionRow = {
  * Ignora erros silenciosamente se as tabelas ainda não existirem.
  */
 export async function attachTrialToWorkspace(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   workspaceId: string
 ): Promise<void> {
   const { data: plan, error: planErr } = await supabase
@@ -39,17 +46,19 @@ export async function attachTrialToWorkspace(
     return;
   }
 
-  const days = Math.max(1, Number(plan.trial_days) || 14);
-  const trialEnds = new Date();
+  const days = Math.max(1, Number(plan.trial_days) || TRIAL_DAYS);
+  const started = new Date();
+  const trialEnds = new Date(started);
   trialEnds.setUTCDate(trialEnds.getUTCDate() + days);
 
   const { error: subErr } = await supabase.from("workspace_subscriptions").insert({
     workspace_id: workspaceId,
     plan_id: plan.id,
     status: "trialing",
+    trial_started_at: started.toISOString(),
     trial_ends_at: trialEnds.toISOString(),
     current_period_end: null,
-    updated_at: new Date().toISOString(),
+    updated_at: started.toISOString(),
   });
 
   if (subErr) {
@@ -60,7 +69,7 @@ export async function attachTrialToWorkspace(
 }
 
 export async function getWorkspaceSubscription(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   workspaceId: string
 ): Promise<WorkspaceSubscriptionRow | null> {
   const { data, error } = await supabase
@@ -93,9 +102,15 @@ export function evaluateWorkspaceAccess(
   options: { bypass: boolean }
 ): AccessResult {
   if (options.bypass) return { ok: true };
-  if (!sub) return { ok: true };
+  if (!sub) return { ok: false, reason: "subscription_expired", message: "Não foi possível verificar a assinatura. Tente novamente ou entre em contato com o suporte." };
 
   const now = Date.now();
+
+  if (!["trialing", "active", "past_due", "canceled", "expired"].includes(sub.status) ||
+      (sub.status === "trialing" && (!sub.trial_ends_at || !Number.isFinite(Date.parse(sub.trial_ends_at)))) ||
+      (sub.status === "active" && sub.current_period_end !== null && !Number.isFinite(Date.parse(sub.current_period_end)))) {
+    return { ok: false, reason: "subscription_expired", message: "Não foi possível validar a assinatura. Contate o suporte." };
+  }
 
   if (sub.status === "past_due") {
     return {
@@ -119,19 +134,18 @@ export function evaluateWorkspaceAccess(
 
   if (sub.status === "trialing" && sub.trial_ends_at) {
     const end = new Date(sub.trial_ends_at).getTime();
-    if (now > end) {
+    if (now >= end) {
       return {
         ok: false,
         reason: "trial_expired",
-        message:
-          "O período de trial terminou. Peça a um administrador para ativar um plano pago.",
+        message: `O teste grátis de ${TRIAL_DAYS} dias terminou. Assine o plano ${PRO_PLAN.name} por ${proMonthlyPriceLabel()} para continuar.`,
       };
     }
   }
 
   if (sub.status === "active" && sub.current_period_end) {
     const end = new Date(sub.current_period_end).getTime();
-    if (now > end) {
+    if (now >= end) {
       return {
         ok: false,
         reason: "subscription_expired",
@@ -144,7 +158,7 @@ export function evaluateWorkspaceAccess(
 }
 
 const STATUS_LABEL_PT: Record<string, string> = {
-  trialing: "Período de teste",
+  trialing: "Teste grátis",
   active: "Subscrição ativa",
   past_due: "Pagamento em falta",
   canceled: "Cancelada",
@@ -155,9 +169,59 @@ export function subscriptionStatusLabelPt(status: string): string {
   return STATUS_LABEL_PT[status] ?? status;
 }
 
-export function formatPlanPriceEUR(cents: number): string {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
+type PlanEmbed = { slug?: string } | { slug?: string }[] | null | undefined;
+
+function planSlug(embed: PlanEmbed): string | null {
+  if (!embed) return null;
+  if (Array.isArray(embed)) return embed[0]?.slug ?? null;
+  return embed.slug ?? null;
+}
+
+/**
+ * Durante o teste o utilizador pode ser dono de no máximo 2 CRMs (workspaces).
+ * Um plano Pro ativo em qualquer CRM seu remove o limite.
+ */
+export async function workspaceCreationLimit(
+  supabase: DbClient,
+  userId: string
+): Promise<{ ok: true } | { ok: false; status: 403 | 500; message: string }> {
+  const { data: owned, error } = await supabase
+    .from("workspaces")
+    .select("id")
+    .eq("owner_id", userId);
+
+  if (error) {
+    return {
+      ok: false,
+      status: 500,
+      message: "Não foi possível verificar os CRMs. Tente novamente.",
+    };
+  }
+
+  const ids = (owned ?? []).map((row) => String(row.id)).filter(Boolean);
+  if (ids.length < TRIAL_MAX_WORKSPACES) return { ok: true };
+
+  const { data: subs, error: subErr } = await supabase
+    .from("workspace_subscriptions")
+    .select("status, current_period_end, subscription_plans(slug)")
+    .in("workspace_id", ids);
+
+  if (subErr) {
+    return {
+      ok: false,
+      status: 500,
+      message: "Não foi possível verificar os CRMs. Tente novamente.",
+    };
+  }
+
+  const hasPro = (subs ?? []).some((row) => {
+    const slug = planSlug(row.subscription_plans as PlanEmbed);
+    if (row.status !== "active" || slug !== PRO_PLAN.slug) return false;
+    if (!row.current_period_end) return true;
+    return new Date(String(row.current_period_end)).getTime() > Date.now();
+  });
+
+  if (hasPro) return { ok: true };
+
+  return { ok: false, status: 403, message: trialWorkspaceLimitMessage() };
 }

@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
 
 type DbStatus = "trialing" | "active" | "past_due" | "canceled" | "expired";
 
@@ -18,11 +18,11 @@ export function mapStripeSubscriptionStatus(
     case "incomplete_expired":
       return "canceled";
     case "incomplete":
-      return "trialing";
+      return "past_due";
     case "paused":
-      return "active";
+      return "past_due";
     default:
-      return "active";
+      return "expired";
   }
 }
 
@@ -32,7 +32,7 @@ type SessionMeta = { workspace_id?: string | null; plan_id?: string | null };
  * Grava ou atualiza `workspace_subscriptions` a partir de uma Subscription do Stripe.
  */
 export async function upsertWorkspaceSubscriptionFromStripe(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSub: Stripe.Subscription,
   sessionMeta?: SessionMeta
 ): Promise<void> {
@@ -61,7 +61,7 @@ export async function upsertWorkspaceSubscriptionFromStripe(
       "[stripe-sync] Sem workspace_id/plan_id para subscription",
       stripeSub.id
     );
-    return;
+    throw new Error("Assinatura sem workspace ou plano associado.");
   }
 
   const customerId =
@@ -79,6 +79,10 @@ export async function upsertWorkspaceSubscriptionFromStripe(
     status === "trialing" && stripeSub.trial_end
       ? new Date(stripeSub.trial_end * 1000).toISOString()
       : null;
+  const trialStartedAt =
+    typeof stripeSub.trial_start === "number"
+      ? new Date(stripeSub.trial_start * 1000).toISOString()
+      : undefined;
 
   const now = new Date().toISOString();
 
@@ -91,18 +95,19 @@ export async function upsertWorkspaceSubscriptionFromStripe(
       status,
       current_period_end: currentPeriodEnd,
       trial_ends_at: trialEndsAt,
+      ...(trialStartedAt ? { trial_started_at: trialStartedAt } : {}),
       updated_at: now,
     },
     { onConflict: "workspace_id" }
   );
 
   if (error) {
-    console.error("[stripe-sync] upsert falhou", error.message);
+    throw new Error("Não foi possível sincronizar a assinatura.");
   }
 }
 
 export async function markWorkspaceSubscriptionCanceledByStripeId(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSubscriptionId: string
 ): Promise<void> {
   const { error } = await admin
@@ -114,12 +119,12 @@ export async function markWorkspaceSubscriptionCanceledByStripeId(
     .eq("stripe_subscription_id", stripeSubscriptionId);
 
   if (error) {
-    console.error("[stripe-sync] cancel update falhou", error.message);
+    throw new Error("Não foi possível sincronizar a assinatura.");
   }
 }
 
 export async function markWorkspaceSubscriptionPastDueByStripeId(
-  admin: SupabaseClient,
+  admin: DbClient,
   stripeSubscriptionId: string
 ): Promise<void> {
   const { error } = await admin
@@ -131,6 +136,6 @@ export async function markWorkspaceSubscriptionPastDueByStripeId(
     .eq("stripe_subscription_id", stripeSubscriptionId);
 
   if (error) {
-    console.error("[stripe-sync] past_due update falhou", error.message);
+    throw new Error("Não foi possível sincronizar a assinatura.");
   }
 }

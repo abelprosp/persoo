@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 type Props = {
   initialFullName: string;
   initialCompanyName: string;
+  canPersonalize: boolean;
 };
 
-export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
+export function OnboardingForm({ initialFullName, initialCompanyName, canPersonalize }: Props) {
   const router = useRouter();
   const [fullName, setFullName] = useState(initialFullName);
   const [companyName, setCompanyName] = useState(initialCompanyName);
@@ -23,6 +24,7 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
     if (fullName.trim().length < 2 || companyName.trim().length < 2) return false;
@@ -37,17 +39,21 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
     setError(null);
 
     try {
-      if (mode === "ai") {
+      let generatedPreviewId = previewId;
+      if (canPersonalize && mode === "ai" && !generatedPreviewId) {
         const aiRes = await fetch("/api/ai/customize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ description }),
         });
-        const aiData = (await aiRes.json().catch(() => ({}))) as { error?: string };
+        const aiData = (await aiRes.json().catch(() => ({}))) as { error?: string; previewId?: string };
         if (!aiRes.ok) {
           setError(aiData.error ?? "Não foi possível personalizar com IA.");
           return;
         }
+        if (!aiData.previewId) { setError("A IA não retornou uma configuração válida."); return; }
+        generatedPreviewId = aiData.previewId;
+        setPreviewId(aiData.previewId);
       }
 
       const res = await fetch("/api/onboarding/complete", {
@@ -59,16 +65,18 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
           mode,
           templateId: mode === "template" ? templateId : undefined,
           description: mode === "ai" ? description : undefined,
+          previewId: mode === "ai" ? generatedPreviewId : undefined,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
+        setPreviewId(null);
         setError(data.error ?? "Não foi possível concluir o onboarding.");
         return;
       }
       router.push("/app/dashboard");
       router.refresh();
-    } finally {
+    } catch { setError("Falha de conexão. Tente novamente."); } finally {
       setLoading(false);
     }
   }
@@ -88,6 +96,7 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
               <Label htmlFor="name">Seu nome</Label>
               <Input
                 id="name"
+                maxLength={120}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -97,6 +106,7 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
               <Label htmlFor="company">Nome da empresa</Label>
               <Input
                 id="company"
+                maxLength={120}
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 required
@@ -104,7 +114,7 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
             </div>
           </div>
 
-          <div className="space-y-3">
+          {canPersonalize && <><div className="space-y-3">
             <p className="text-sm font-medium">Como quer começar?</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <button
@@ -170,10 +180,13 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
                 className="resize-none"
                 placeholder="Ex.: vendemos software B2B para indústrias, ciclo médio de 45 dias, equipe de 6 closers e foco em inbound."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                maxLength={4000}
+                onChange={(e) => { setDescription(e.target.value); setPreviewId(null); }}
               />
             </div>
           )}
+
+          </>}
 
           {error && (
             <p className="text-sm text-destructive" role="alert">

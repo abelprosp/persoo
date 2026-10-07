@@ -1,3 +1,4 @@
+import { pagination } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import { CreateNoteDialog } from "@/components/crm/create-note-dialog";
@@ -13,6 +14,9 @@ import { relativeTime } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { AiModuleCustomizeButton } from "@/components/crm/ai-module-customize-button";
 import { NoteCardActions } from "@/components/crm/note-card-actions";
+import { showingInactive } from "@/lib/active-view";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
+import { getCustomFields } from "@/lib/ai-schema";
 import {
   sanitizeIlikeTerm,
   pickSortId,
@@ -48,6 +52,7 @@ export default async function NotesPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
   const sortId = pickSortId(
     NOTES_SORT,
@@ -70,7 +75,10 @@ export default async function NotesPage({
     .eq("id", user.id)
     .maybeSingle();
 
-  let query = supabase.from("notes").select("*").eq("workspace_id", ws.id);
+  const schema = ws.ai_schema as Record<string, unknown> | null;
+  const noteFields = getCustomFields(schema, "notes");
+
+  let query = supabase.from("notes").select("*", {count:"exact"}).eq("workspace_id", ws.id).eq("active", !showingInactive(sp));
   if (q) {
     const p = `%${q}%`;
     query = query.or(
@@ -79,7 +87,8 @@ export default async function NotesPage({
   }
   query = query.order(sortOpt.column, { ascending: sortOpt.ascending });
 
-  const { data: rows } = await query;
+  const { data: rows, count, error } = await query.order("id",{ascending:true}).range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar os registros.");
   const list = rows ?? [];
 
   return (
@@ -87,6 +96,7 @@ export default async function NotesPage({
       <PageHeader
         breadcrumb="Notas"
         viewLabel="Vista em notas"
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <CreateNoteDialog
@@ -120,7 +130,7 @@ export default async function NotesPage({
                 <h3 className="line-clamp-2 font-semibold leading-snug">
                   {n.title}
                 </h3>
-                <NoteCardActions note={n} />
+                <NoteCardActions note={n} customFields={noteFields} />
               </CardHeader>
               <CardContent>
                 <p className="line-clamp-4 text-sm text-muted-foreground">
@@ -143,7 +153,7 @@ export default async function NotesPage({
         )}
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-white">
-        <DataTableFooter total={list.length} />
+        <DataTableFooter total={count ?? list.length} page={page} pageSize={pageSize} params={sp} />
       </div>
     </div>
   );

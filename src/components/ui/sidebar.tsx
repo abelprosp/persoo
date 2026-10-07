@@ -514,7 +514,12 @@ function SidebarMenuButton({
     defaultTagName: "button",
     props: mergeProps<"button">(
       {
-        className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+        className: cn(
+          sidebarMenuButtonVariants({ variant, size }),
+          className,
+          state === "collapsed" && !isMobile &&
+            "mx-auto! justify-center! gap-0! p-0! [&>span]:sr-only"
+        ),
       },
       props
     ),

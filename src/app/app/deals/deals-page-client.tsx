@@ -10,6 +10,7 @@ import {
   type StageOption,
 } from "@/components/crm/create-deal-dialog";
 import { PageHeader } from "@/components/crm/page-header";
+import { ShowInactiveToggle } from "@/components/crm/show-inactive-toggle";
 import { PageToolbar } from "@/components/crm/page-toolbar";
 import {
   KanbanBoard,
@@ -79,6 +80,7 @@ export function DealsPageClient({
       <PageHeader
         breadcrumb="Negócios"
         viewLabel="Kanban"
+        filtersLeft={<ShowInactiveToggle />}
         createSlot={
           <div className="flex items-center gap-2">
             <Button

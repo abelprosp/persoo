@@ -29,6 +29,7 @@ export type ContactRow = {
   phone: string | null;
   organization_id: string | null;
   custom_data?: unknown;
+  active?: boolean;
 };
 
 type Props = {

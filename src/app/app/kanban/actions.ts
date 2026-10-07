@@ -25,7 +25,7 @@ function sanitizeColumns(
   for (const raw of input) {
     const idRaw = typeof raw.id === "string" ? raw.id.trim() : "";
     const titleRaw = typeof raw.title === "string" ? raw.title.trim() : "";
-    let id = slugifyKanbanId(idRaw) || slugifyKanbanId(titleRaw);
+    const id = slugifyKanbanId(idRaw) || slugifyKanbanId(titleRaw);
     if (!id) continue;
     let n = 0;
     let candidate = id;

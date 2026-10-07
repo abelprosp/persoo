@@ -20,28 +20,44 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteNote, updateNote } from "@/app/app/notes/actions";
+import { updateNote } from "@/app/app/notes/actions";
+import { setRecordActive } from "@/app/app/records/actions";
+import type { CustomFieldDef } from "@/lib/ai-schema";
+import { readRowCustomData } from "@/lib/ai-schema";
 
 type NoteItem = {
   id: string;
   title: string;
   content: string | null;
   author_name: string | null;
+  custom_data?: unknown;
+  active?: boolean;
 };
 
-export function NoteCardActions({ note }: { note: NoteItem }) {
+export function NoteCardActions({
+  note,
+  customFields = [],
+}: {
+  note: NoteItem;
+  customFields?: CustomFieldDef[];
+}) {
   const router = useRouter();
   const [openEdit, setOpenEdit] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onDelete() {
-    const ok = window.confirm("Deseja excluir esta nota?");
+  const custom = readRowCustomData(note);
+  const isActive = note.active !== false;
+
+  async function onToggle() {
+    const ok = window.confirm(
+      isActive ? "Desativar esta nota?" : "Reativar esta nota?"
+    );
     if (!ok) return;
     setPending(true);
     setError(null);
     try {
-      const r = await deleteNote(note.id);
+      const r = await setRecordActive("notes", note.id, !isActive);
       if ("error" in r) {
         setError(r.error);
         return;
@@ -84,11 +100,10 @@ export function NoteCardActions({ note }: { note: NoteItem }) {
             Editar
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => void onDelete()}
-            className="text-destructive"
+            onClick={() => void onToggle()}
             disabled={pending}
           >
-            Excluir
+            {isActive ? "Desativar" : "Reativar"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -132,6 +147,16 @@ export function NoteCardActions({ note }: { note: NoteItem }) {
                   defaultValue={note.author_name ?? ""}
                 />
               </div>
+              {customFields.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <Label htmlFor={`note-cf-${note.id}-${field.key}`}>{field.label}</Label>
+                  <Input
+                    id={`note-cf-${note.id}-${field.key}`}
+                    name={`custom_${field.key}`}
+                    defaultValue={custom[field.key] == null ? "" : String(custom[field.key])}
+                  />
+                </div>
+              ))}
             </div>
             <DialogFooter>
               <Button

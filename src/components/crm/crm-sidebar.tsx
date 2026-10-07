@@ -17,6 +17,10 @@ import {
   Package,
   Shield,
   Settings,
+  Search,
+  Cable,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -155,6 +159,20 @@ export function CrmSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <div className="px-2 pb-2 group-data-[collapsible=icon]:px-1.5">
+        <SidebarMenuButton render={<Link href="/app/integrations" />} tooltip="Integrações" isActive={pathname.startsWith("/app/integrations")} className="mb-1 h-9 rounded-lg">
+          <Cable className="size-4 shrink-0" /><span>Integrações</span>
+        </SidebarMenuButton>
+        <SidebarMenuButton render={<Link href="/app/search" />} tooltip="Busca global" isActive={pathname.startsWith("/app/search")} className="h-9 rounded-lg">
+          <Search className="size-4 shrink-0" /><span>Busca global</span>
+        </SidebarMenuButton>
+        <SidebarMenuButton render={<Link href="/app/proposals" />} tooltip="Propostas" isActive={pathname.startsWith("/app/proposals")} className="mt-1 h-9 rounded-lg">
+          <FileText className="size-4 shrink-0" /><span>Propostas</span>
+        </SidebarMenuButton>
+        <SidebarMenuButton render={<Link href="/app/reports" />} tooltip="Relatórios" isActive={pathname.startsWith("/app/reports")} className="mt-1 h-9 rounded-lg">
+          <BarChart3 className="size-4 shrink-0" /><span>Relatórios</span>
+        </SidebarMenuButton>
+      </div>
       <SidebarFooter className="gap-1 border-t border-border/50 p-3 group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:border-border/40 group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:py-3">
         <SidebarMenu className="gap-0.5 group-data-[collapsible=icon]:gap-1.5">
           <SidebarMenuItem>

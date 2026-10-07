@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: persoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Configure APP_DB_PASSWORD}
+      POSTGRES_DB: persoo
+    ports:
+      - "127.0.0.1:18432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/00_auth.sql:/docker-entrypoint-initdb.d/00_auth.sql:ro
+      - ./supabase/migrations/001_persoo_crm.sql:/docker-entrypoint-initdb.d/10_001_persoo_crm.sql:ro
+      - ./supabase/migrations/002_workspaces_select_owner.sql:/docker-entrypoint-initdb.d/11_002_workspaces_select_owner.sql:ro
+      - ./supabase/migrations/003_fix_workspace_members_select_recursion.sql:/docker-entrypoint-initdb.d/12_003_fix_workspace_members_select_recursion.sql:ro
+      - ./supabase/migrations/004_tasks_custom_data_products.sql:/docker-entrypoint-initdb.d/13_004_tasks_custom_data_products.sql:ro
+      - ./supabase/migrations/005_subscriptions_and_super_admin.sql:/docker-entrypoint-initdb.d/14_005_subscriptions_and_super_admin.sql:ro
+      - ./supabase/migrations/006_workspace_team_members.sql:/docker-entrypoint-initdb.d/15_006_workspace_team_members.sql:ro
+      - ./supabase/migrations/007_stripe_billing.sql:/docker-entrypoint-initdb.d/16_007_stripe_billing.sql:ro
+      - ./supabase/migrations/008_fix_workspace_members_rls_recursion.sql:/docker-entrypoint-initdb.d/17_008_fix_workspace_members_rls_recursion.sql:ro
+      - ./supabase/migrations/009_fix_workspace_members_insert_recursion.sql:/docker-entrypoint-initdb.d/18_009_fix_workspace_members_insert_recursion.sql:ro
+      - ./supabase/migrations/010_card_notes_and_activities.sql:/docker-entrypoint-initdb.d/19_010_card_notes_and_activities.sql:ro
+      - ./supabase/migrations/011_card_column_time_tracking.sql:/docker-entrypoint-initdb.d/20_011_card_column_time_tracking.sql:ro
+      - ./supabase/migrations/012_card_enrichments.sql:/docker-entrypoint-initdb.d/21_012_card_enrichments.sql:ro
+      - ./supabase/migrations/013_user_onboarding.sql:/docker-entrypoint-initdb.d/22_013_user_onboarding.sql:ro
+      - ./supabase/migrations/014_lead_intake.sql:/docker-entrypoint-initdb.d/23_014_lead_intake.sql:ro
+      - ./supabase/migrations/015_bi_export.sql:/docker-entrypoint-initdb.d/24_015_bi_export.sql:ro
+      - ./supabase/migrations/016_soft_delete.sql:/docker-entrypoint-initdb.d/25_016_soft_delete.sql:ro
+      - ./supabase/migrations/017_security_and_integrity.sql:/docker-entrypoint-initdb.d/26_017_security_and_integrity.sql:ro
+      - ./supabase/migrations/018_trial_seven_days_and_pro.sql:/docker-entrypoint-initdb.d/27_018_trial_seven_days_and_pro.sql:ro
+      - ./supabase/migrations/019_sales_operations.sql:/docker-entrypoint-initdb.d/28_019_sales_operations.sql:ro
+      - ./supabase/migrations/020_revenue_management.sql:/docker-entrypoint-initdb.d/29_020_revenue_management.sql:ro
+      - ./docker/postgres/98_password.sh:/docker-entrypoint-initdb.d/98_password.sh:ro
+      - ./docker/postgres/99_grants.sql:/docker-entrypoint-initdb.d/99_grants.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U persoo -d persoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:18473:3000"
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:?Configure DOCKER_DATABASE_URL}
+      DATABASE_URL_ADMIN: ${DOCKER_DATABASE_URL_ADMIN:?Configure DOCKER_DATABASE_URL_ADMIN}
+      AUTH_SECRET: ${AUTH_SECRET:?Configure AUTH_SECRET}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Configure NEXT_PUBLIC_APP_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_PRICE_ID_PRO: ${STRIPE_PRICE_ID_PRO:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      AUTH_COOKIE_SECURE: "true"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      WHATSAPP_TOKEN_KEY: ${WHATSAPP_TOKEN_KEY:?Configure WHATSAPP_TOKEN_KEY}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v25.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  automation-worker:
+    build: .
+    command: ["node", "scripts/automation-worker.mjs"]
+    environment:
+      DATABASE_URL_ADMIN: ${DOCKER_DATABASE_URL_ADMIN:?Configure DOCKER_DATABASE_URL_ADMIN}
+      WHATSAPP_TOKEN_KEY: ${WHATSAPP_TOKEN_KEY:?Configure WHATSAPP_TOKEN_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    # 80/443 do host ficam com o outro site. HTTP 18480 e HTTPS 18443.
+    ports:
+      - "18480:80"
+      - "18443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

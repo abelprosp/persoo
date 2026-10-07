@@ -1,0 +1,6 @@
+"use client";
+import Link from "next/link";
+import {useState} from "react";
+import {Button} from "@/components/ui/button";
+type Item={id:string;title:string;href:string;read_at:string|null;created_at:string};
+export function NotificationList({initial}:{initial:Item[]}){const [items,setItems]=useState(initial);if(!items.length)return <p className="p-5 text-sm text-muted-foreground">Ainda não há notificações. Eventos de CRM e lembretes de automação aparecerão aqui.</p>;return <ul className="divide-y">{items.map(item=><li key={item.id} className={`flex items-start justify-between gap-4 p-5 ${item.read_at?"":"bg-violet-50/60"}`}><div><p className="font-medium">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleString("pt-BR")}</p></div><div className="flex shrink-0 items-center gap-2"><Link className="text-sm text-violet-700 underline" href={item.href}>Abrir</Link>{!item.read_at&&<Button variant="outline" size="sm" onClick={async()=>{const r=await fetch("/api/crm/notifications",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});if(r.ok)setItems(current=>current.map(row=>row.id===item.id?{...row,read_at:new Date().toISOString()}:row));}}>Marcar como lida</Button>}</div></li>)}</ul>}

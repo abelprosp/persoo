@@ -1,8 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/types";
+import { PRO_PLAN, STRIPE_PRICE_PRO_ENV } from "@/lib/plans";
 
 /** Dono do workspace ou membro owner/admin. */
 export async function userCanManageWorkspaceBilling(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string,
   workspaceId: string
 ): Promise<boolean> {
@@ -36,8 +37,8 @@ export type PlanForCheckout = {
  */
 export function resolveStripePriceId(plan: PlanForCheckout): string | null {
   if (plan.stripe_price_id?.trim()) return plan.stripe_price_id.trim();
-  if (plan.slug === "pro") {
-    const envId = process.env.STRIPE_PRICE_ID_PRO?.trim();
+  if (plan.slug === PRO_PLAN.slug) {
+    const envId = process.env[STRIPE_PRICE_PRO_ENV]?.trim();
     if (envId) return envId;
   }
   return null;

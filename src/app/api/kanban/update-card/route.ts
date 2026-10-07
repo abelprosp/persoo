@@ -1,147 +1,32 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getWorkspaceContext } from "@/lib/workspace";
-
-type Variant = "lead" | "deal" | "task";
-
-export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-  const { active } = await getWorkspaceContext(supabase, user.id);
-  if (!active) {
-    return NextResponse.json(
-      { error: "Espaço de trabalho não encontrado" },
-      { status: 404 }
-    );
-  }
-
-  const body = (await req.json().catch(() => ({}))) as {
-    variant?: Variant;
-    id?: string;
-    payload?: Record<string, unknown>;
-  };
-  const variant = body.variant;
-  const id = String(body.id ?? "").trim();
-  const payload = body.payload ?? {};
-  if (!variant || !id) {
-    return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
-  }
-
-  const {
-    data: profile,
-  } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-  const authorName = profile?.full_name?.trim() || user.email?.split("@")[0] || "Utilizador";
-
-  if (variant === "lead") {
-    const update = {
-      full_name: String(payload.full_name ?? "").trim(),
-      company: String(payload.company ?? "").trim() || null,
-      email: String(payload.email ?? "").trim() || null,
-      phone: String(payload.phone ?? "").trim() || null,
-      owner_name: String(payload.owner_name ?? "").trim() || null,
-      last_activity_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (!update.full_name) {
-      return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
-    }
-    const { error } = await supabase
-      .from("leads")
-      .update(update)
-      .eq("id", id)
-      .eq("workspace_id", active.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    const { error: activityError } = await supabase.from("card_activities").insert({
-      workspace_id: active.id,
-      entity_type: "lead",
-      entity_id: id,
-      kind: "edit",
-      title: "Lead atualizado",
-      description: "Campos principais do lead foram editados.",
-      author_name: authorName,
-    });
-    if (activityError) {
-      return NextResponse.json({ error: activityError.message }, { status: 500 });
-    }
-  } else if (variant === "deal") {
-    const rawValue = String(payload.value ?? "").trim();
-    const parsed = rawValue === "" ? null : Number(rawValue.replace(",", "."));
-    if (parsed !== null && Number.isNaN(parsed)) {
-      return NextResponse.json({ error: "Valor inválido" }, { status: 400 });
-    }
-    const update = {
-      title: String(payload.title ?? "").trim(),
-      organization_name: String(payload.organization_name ?? "").trim() || null,
-      email: String(payload.email ?? "").trim() || null,
-      phone: String(payload.phone ?? "").trim() || null,
-      assignee_name: String(payload.assignee_name ?? "").trim() || null,
-      value: parsed,
-      last_updated: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (!update.title) {
-      return NextResponse.json({ error: "Título é obrigatório" }, { status: 400 });
-    }
-    const { error } = await supabase
-      .from("deals")
-      .update(update)
-      .eq("id", id)
-      .eq("workspace_id", active.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    const { error: activityError } = await supabase.from("card_activities").insert({
-      workspace_id: active.id,
-      entity_type: "deal",
-      entity_id: id,
-      kind: "edit",
-      title: "Negócio atualizado",
-      description: "Campos principais do negócio foram editados.",
-      author_name: authorName,
-    });
-    if (activityError) {
-      return NextResponse.json({ error: activityError.message }, { status: 500 });
-    }
-  } else {
-    const dueRaw = String(payload.due_at ?? "").trim();
-    const due_at = dueRaw === "" ? null : new Date(dueRaw).toISOString();
-    if (dueRaw && Number.isNaN(new Date(dueRaw).getTime())) {
-      return NextResponse.json({ error: "Prazo inválido" }, { status: 400 });
-    }
-    const update = {
-      title: String(payload.title ?? "").trim(),
-      priority: String(payload.priority ?? "medium").trim() || "medium",
-      assignee_name: String(payload.assignee_name ?? "").trim() || null,
-      due_at,
-      updated_at: new Date().toISOString(),
-    };
-    if (!update.title) {
-      return NextResponse.json({ error: "Título é obrigatório" }, { status: 400 });
-    }
-    const { error } = await supabase
-      .from("tasks")
-      .update(update)
-      .eq("id", id)
-      .eq("workspace_id", active.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    const { error: activityError } = await supabase.from("card_activities").insert({
-      workspace_id: active.id,
-      entity_type: "task",
-      entity_id: id,
-      kind: "edit",
-      title: "Tarefa atualizada",
-      description: "Campos principais da tarefa foram editados.",
-      author_name: authorName,
-    });
-    if (activityError) {
-      return NextResponse.json({ error: activityError.message }, { status: 500 });
-    }
-  }
-
-  return NextResponse.json({ ok: true });
+import { z } from "zod";
+import { workspaceAccess } from "@/lib/access";
+import { transaction } from "@/lib/db/pool";
+import { readJson, uuid } from "@/lib/security";
+const text = z.string().trim().max(300).optional().transform(v=>v || null);
+const email = z.union([z.email().max(254),z.literal("")]).optional().transform(v=>v || null);
+const money = z.union([z.number(),z.string()]).transform(v=>String(v).trim()==="" ? null : Number(String(v).replace(",","."))).refine(v=>v===null || Number.isFinite(v) && v>=0 && v<=1e12);
+const custom = z.record(z.string().max(80),z.union([z.string().max(4000),z.number().finite(),z.boolean(),z.null()])).optional();
+const common = {email,phone:text,custom_data:custom};
+const payloads = {
+ lead:z.object({...common,full_name:z.string().trim().min(1).max(200),company:text,owner_name:text,qualified_at:z.iso.datetime().nullable().optional()}),
+ deal:z.object({...common,title:z.string().trim().min(1).max(200),organization_name:text,assignee_name:text,value:money,outcome:z.enum(["open","won","lost"]).optional(),probability:z.coerce.number().min(0).max(1).optional(),expected_close_at:z.union([z.iso.date(),z.literal("")]).optional().transform(v=>v===""?null:v)}),
+ task:z.object({title:z.string().trim().min(1).max(200),priority:z.enum(["low","medium","high","urgent"]),assignee_name:text,due_at:z.union([z.iso.datetime({offset:true}),z.literal(""),z.null()]).optional().transform(v=>v || null),custom_data:custom})
+};
+export async function POST(request:Request) {
+ try {
+  const body=z.object({id:uuid,variant:z.enum(["lead","deal","task"]),payload:z.unknown()}).parse(await readJson(request));
+  const parsed=payloads[body.variant].safeParse(body.payload);
+  if (!parsed.success) return NextResponse.json({error:"Revise os campos, valores e datas."},{status:400});
+  const {user,workspace}=await workspaceAccess();
+  const table={lead:"leads",deal:"deals",task:"tasks"}[body.variant];
+  const fields=Object.entries(parsed.data).filter(([,v])=>v!==undefined);
+  const changed=await transaction(user.id,async run=>{
+    const result=await run(`UPDATE ${table} SET ${fields.map(([key],i)=>'"'+key+'"=$'+(i+3)).join(",")},updated_at=now() WHERE workspace_id=$1 AND id=$2 RETURNING id`,[workspace.id,body.id,...fields.map(([,v])=>typeof v==="object" && v!==null?JSON.stringify(v):v)]);
+    if(!result.rowCount) return false;
+    await run("INSERT INTO card_activities(workspace_id,entity_type,entity_id,kind,title,description,author_name) VALUES($1,$2,$3,'edit','Registro atualizado','Campos editados',$4)",[workspace.id,body.variant,body.id,user.email]);
+    return true;
+  });
+  return NextResponse.json(changed?{ok:true}:{error:"Registro não encontrado."},{status:changed?200:404});
+ } catch(error) { return NextResponse.json({error:error instanceof z.ZodError?"Pedido inválido.":"Não foi possível salvar. Verifique seu acesso e tente novamente."},{status:error instanceof z.ZodError?400:403}); }
 }

@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -36,20 +29,7 @@ export function PageHeader({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-2 text-sm">
-          <span className="font-medium text-foreground">{breadcrumb}</span>
-          <span className="text-muted-foreground">/</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted/80 hover:text-foreground">
-              {viewLabel}
-              <ChevronDown className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem>Lista</DropdownMenuItem>
-              <DropdownMenuItem>Kanban</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <div className="min-w-0"><h1 className="text-2xl font-semibold tracking-tight">{breadcrumb}</h1><p className="mt-1 text-sm text-muted-foreground">{viewLabel}</p></div>
         {showCreate &&
           (createSlot ??
             (createHref ? (
@@ -63,12 +43,7 @@ export function PageHeader({
                 <Plus className="mr-2 size-4" />
                 Criar
               </Link>
-            ) : (
-              <Button className="bg-zinc-900 text-white hover:bg-zinc-800" type="button">
-                <Plus className="mr-2 size-4" />
-                Criar
-              </Button>
-            )))}
+            ) : null))}
       </div>
       {(filtersLeft || toolbar) && (
         <div className="flex flex-wrap items-center justify-between gap-3">

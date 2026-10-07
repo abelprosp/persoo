@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({reset}:{reset:()=>void}) {return <section role="alert" className="rounded-xl border bg-background p-8"><h1 className="text-xl font-semibold">Não foi possível carregar esta página</h1><p className="my-3 text-muted-foreground">Tente novamente. Se o problema continuar, confira sua conexão e o acesso ao espaço de trabalho.</p><button onClick={reset} className="rounded bg-primary px-4 py-2 text-primary-foreground">Tentar novamente</button></section>;}
