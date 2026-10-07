@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: key, error: keyError } = await admin
     .from("lead_api_keys")
-    .select("id, workspace_id, fields, revoked_at")
+    .select("id, name, workspace_id, fields, revoked_at")
     .eq("token_hash", hashToken(token))
     .maybeSingle();
 
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     );
   }
 
+  lead.custom_data = { ...lead.custom_data, source: key.name, source_type: "webhook", source_id: key.id };
   const inserted = await insertLeadFromIntake(admin, key.workspace_id, lead);
   if (inserted.error) {
     return NextResponse.json(

@@ -12,6 +12,11 @@ import {
 } from "@/lib/lead-intake";
 import { revalidatePath } from "next/cache";
 
+function refreshIntegrations() {
+  revalidatePath("/app/settings/captacao");
+  revalidatePath("/app/integrations");
+}
+
 async function managerContext() {
   const supabase = await createClient();
   const {
@@ -31,8 +36,7 @@ async function persistCustomFields(
   schema: Record<string, unknown> | null,
   fields: IntakeField[]
 ) {
-  if (!fields.some((field) => field.custom)) return null;
-  const next = mergeLeadCustomFields(schema, fields);
+  const next = mergeLeadCustomFields(schema, [...fields, { target: "source", label: "Origem do lead", inboundKey: "source", required: false, custom: true, type: "text" }]);
   const { error } = await supabase
     .from("workspaces")
     .update({ ai_schema: next, updated_at: new Date().toISOString() })
@@ -74,7 +78,7 @@ export async function createLeadApiKey(
   );
   if (schemaError) return { error: schemaError };
 
-  revalidatePath("/app/settings/captacao");
+  refreshIntegrations();
   revalidatePath("/app/leads");
   return { ok: true, token };
 }
@@ -90,7 +94,7 @@ export async function revokeLeadApiKey(
     .eq("id", id)
     .eq("workspace_id", ctx.active.id);
   if (error) return { error: error.message };
-  revalidatePath("/app/settings/captacao");
+  refreshIntegrations();
   return { ok: true };
 }
 
@@ -125,7 +129,7 @@ export async function createLeadForm(
   );
   if (schemaError) return { error: schemaError };
 
-  revalidatePath("/app/settings/captacao");
+  refreshIntegrations();
   revalidatePath("/app/leads");
   return { ok: true, publicId };
 }
@@ -141,6 +145,6 @@ export async function disableLeadForm(
     .eq("id", id)
     .eq("workspace_id", ctx.active.id);
   if (error) return { error: error.message };
-  revalidatePath("/app/settings/captacao");
+  refreshIntegrations();
   return { ok: true };
 }

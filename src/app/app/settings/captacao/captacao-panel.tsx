@@ -185,7 +185,7 @@ export function CaptacaoPanel({
           {canManage && (
             <div className="space-y-3 rounded-lg border border-border/70 p-4">
               <div className="space-y-2">
-                <Label htmlFor="key-name">Nome da chave</Label>
+                <Label htmlFor="key-name">Nome da origem / chave</Label>
                 <Input
                   id="key-name"
                   value={keyName}
@@ -279,7 +279,7 @@ export function CaptacaoPanel({
           {canManage && (
             <div className="space-y-3 rounded-lg border border-border/70 p-4">
               <div className="space-y-2">
-                <Label htmlFor="form-name">Nome do formulário</Label>
+                <Label htmlFor="form-name">Nome da origem / formulário</Label>
                 <Input
                   id="form-name"
                   value={formName}

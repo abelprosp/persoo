@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: Params) {
   const admin = createAdminClient();
   const { data: form, error } = await admin
     .from("lead_forms")
-    .select("id, workspace_id, fields, disabled_at")
+    .select("id, name, workspace_id, fields, disabled_at")
     .eq("public_id", publicId)
     .maybeSingle();
 
@@ -72,6 +72,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  lead.custom_data = { ...lead.custom_data, source: form.name, source_type: "form", source_id: form.id };
   const inserted = await insertLeadFromIntake(admin, form.workspace_id, lead);
   if (inserted.error) {
     return NextResponse.json(

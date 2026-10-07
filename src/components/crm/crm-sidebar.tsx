@@ -18,6 +18,7 @@ import {
   Shield,
   Settings,
   Search,
+  Cable,
   FileText,
   BarChart3,
 } from "lucide-react";
@@ -159,6 +160,9 @@ export function CrmSidebar({
         </SidebarGroup>
       </SidebarContent>
       <div className="px-2 pb-2 group-data-[collapsible=icon]:px-1.5">
+        <SidebarMenuButton render={<Link href="/app/integrations" />} tooltip="Integrações" isActive={pathname.startsWith("/app/integrations")} className="mb-1 h-9 rounded-lg">
+          <Cable className="size-4 shrink-0" /><span>Integrações</span>
+        </SidebarMenuButton>
         <SidebarMenuButton render={<Link href="/app/search" />} tooltip="Busca global" isActive={pathname.startsWith("/app/search")} className="h-9 rounded-lg">
           <Search className="size-4 shrink-0" /><span>Busca global</span>
         </SidebarMenuButton>
