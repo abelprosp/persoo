@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/security";
 import { adminQuery } from "@/lib/db/pool";
 import { hashToken, intakeCorsHeaders, readBearerOrApiKey } from "@/lib/lead-intake";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,6 +55,9 @@ export async function authorizeExport(request: Request): Promise<
       error: "Esta chave não tem permissão de exportação para BI.",
     };
   }
+  const access=await adminQuery("SELECT workspace_access_allowed($1) AS ok",[key.workspace_id]);
+  if(!access.rows[0]?.ok) return {ok:false,status:403,error:"Assinatura inativa."};
+  if(!await rateLimit("bi:"+key.id,120,60)) return {ok:false,status:429,error:"Muitas solicitações."};
   return { ok: true, workspaceId: key.workspace_id, keyId: key.id };
 }
 

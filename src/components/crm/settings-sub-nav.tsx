@@ -10,6 +10,9 @@ const ITEMS = [
   { href: "/app/settings/team", label: "Equipa" },
   { href: "/app/settings/ai", label: "IA" },
   { href: "/app/settings/captacao", label: "Captação" },
+  { href: "/app/settings/import", label: "Importar" },
+  { href: "/app/settings/automations", label: "Automações" },
+  { href: "/app/settings/whatsapp", label: "WhatsApp" },
 ] as const;
 
 export function SettingsSubNav({ className }: { className?: string }) {

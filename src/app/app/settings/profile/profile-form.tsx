@@ -53,7 +53,7 @@ export function ProfileForm({
       return;
     }
     if (!password) {
-      setMsg("Indique a nova palavra-passe.");
+      setMsg("Indique a nova senha.");
       return;
     }
     startTransition(async () => {
@@ -62,7 +62,7 @@ export function ProfileForm({
       else {
         setPassword("");
         setConfirmPassword("");
-        setMsg("Palavra-passe atualizada.");
+        router.replace("/login"); router.refresh();
       }
     });
   }
@@ -89,8 +89,7 @@ export function ProfileForm({
                 className="bg-muted/50"
               />
               <p className="text-xs text-muted-foreground">
-                O e-mail de início de sessão é gerido pelo Supabase Auth. Para o
-                alterar, use o painel do projeto ou um fluxo de recuperação.
+                O e-mail identifica sua conta. A recuperação de senha está disponível na tela de acesso.
               </p>
             </div>
             <div className="space-y-2">
@@ -114,20 +113,20 @@ export function ProfileForm({
         <CardHeader>
           <CardTitle className="text-lg">Segurança</CardTitle>
           <CardDescription>
-            Defina uma nova palavra-passe para esta conta.
+            Defina uma nova senha para esta conta.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={savePassword} className="space-y-4 max-w-md">
             <div className="space-y-2">
-              <Label htmlFor="password">Nova palavra-passe</Label>
+              <Label htmlFor="password">Nova senha</Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
+                minLength={12} maxLength={128}
               />
             </div>
             <div className="space-y-2">
@@ -142,7 +141,7 @@ export function ProfileForm({
               />
             </div>
             <Button type="submit" variant="secondary" disabled={pending}>
-              {pending ? "A atualizar…" : "Atualizar palavra-passe"}
+              {pending ? "A atualizar…" : "Atualizar senha"}
             </Button>
           </form>
         </CardContent>

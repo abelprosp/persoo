@@ -1,6 +1,9 @@
 import type { DbClient } from "@/lib/db/types";
 import { cookies } from "next/headers";
-import { attachTrialToWorkspace } from "@/lib/subscriptions";
+import {
+  attachTrialToWorkspace,
+  workspaceCreationLimit,
+} from "@/lib/subscriptions";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/workspace-cookie";
 
 export { ACTIVE_WORKSPACE_COOKIE };
@@ -69,6 +72,11 @@ export async function getWorkspaceContext(
   }
 
   async function createFirstWorkspace(): Promise<WorkspaceContext> {
+    const gate = await workspaceCreationLimit(supabase, userId);
+    if (!gate.ok && gate.status === 403) {
+      return reloadContextFromDb();
+    }
+
     const { data: created, error } = await supabase
       .from("workspaces")
       .insert({

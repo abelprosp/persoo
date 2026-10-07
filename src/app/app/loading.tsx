@@ -1,0 +1,1 @@
+export default function Loading(){return <div role="status" aria-live="polite" className="space-y-4 p-4"><span>Carregando registros…</span>{[1,2,3].map(n=><div key={n} className="h-20 animate-pulse rounded-xl bg-muted motion-reduce:animate-none"/>)}</div>;}

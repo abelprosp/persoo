@@ -134,19 +134,21 @@ export function readBearerOrApiKey(request: Request): string | null {
 export async function readInboundPayload(
   request: Request
 ): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
+  let bounded: Request;
+  try { const bytes=await request.arrayBuffer(); if(bytes.byteLength>65536) throw Error(); bounded=new Request(request.url,{method:"POST",headers:request.headers,body:bytes}); } catch { return {ok:false,error:"Pedido inválido ou maior que 64 KB."}; }
   const type = request.headers.get("content-type") ?? "";
   if (
     type.includes("application/x-www-form-urlencoded") ||
     type.includes("multipart/form-data")
   ) {
-    const form = await request.formData();
+    const form = await bounded.formData();
     const data: Record<string, unknown> = {};
     for (const [key, value] of form.entries()) {
       if (typeof value === "string") data[key] = value;
     }
     return { ok: true, data };
   }
-  const body = (await request.json().catch(() => null)) as unknown;
+  const body = (await bounded.json().catch(() => null)) as unknown;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Envie um objeto JSON com os campos do lead." };
   }
@@ -187,14 +189,17 @@ export function buildLeadInsert(
 
   for (const field of fields) {
     const raw = rawValue(payload, field.inboundKey);
+    if (raw.length > 4000) return {error:"Campo muito longo."};
+    if (field.target==="email" && raw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return {error:"E-mail inválido."};
     if (!raw) {
       if (field.required) missing.push(field.label);
       continue;
     }
     if (field.custom) {
       if ((field.type ?? "text").toLowerCase() === "number") {
-        const n = Number.parseFloat(raw.replace(",", "."));
-        if (!Number.isNaN(n)) custom_data[field.target] = n;
+        const n = Number(raw.replace(",", "."));
+        if (!Number.isFinite(n)) return {error:"Número inválido: "+field.label};
+        custom_data[field.target] = n;
       } else {
         custom_data[field.target] = raw;
       }

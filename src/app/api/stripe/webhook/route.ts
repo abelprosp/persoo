@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createDbClient } from "@/lib/db/client";
+import { transaction } from "@/lib/db/pool";
 import {
   markWorkspaceSubscriptionCanceledByStripeId,
   markWorkspaceSubscriptionPastDueByStripeId,
@@ -37,15 +38,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  let admin;
   try {
-    admin = createAdminClient();
-  } catch (e) {
-    console.error("[stripe webhook] admin client", e);
-    return NextResponse.json({ error: "Supabase service role em falta" }, { status: 503 });
-  }
-
-  try {
+    await transaction(null, async run => {
+    // Transaction lock serializes duplicate deliveries; rollback keeps failures retryable.
+    await run("SELECT pg_advisory_xact_lock(hashtext($1))", ["stripe-events"]);
+    if ((await run("SELECT id FROM stripe_events WHERE id=$1", [event.id])).rowCount) return;
+    const admin = createDbClient({user:null,mode:"admin",run});
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -91,6 +89,8 @@ export async function POST(request: Request) {
       default:
         break;
     }
+    await run("INSERT INTO stripe_events(id,type) VALUES($1,$2)", [event.id,event.type]);
+    });
   } catch (e) {
     console.error("[stripe webhook] handler", event.type, e);
     return NextResponse.json({ error: "Erro ao processar" }, { status: 500 });

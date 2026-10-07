@@ -1,5 +1,6 @@
 import { hashPassword } from "@/lib/auth/password";
-import { adminQuery, adminRunner, userRunner } from "@/lib/db/pool";
+import { adminQuery, adminRunner, userRunner, type QueryRunner } from "@/lib/db/pool";
+import { passwordSchema } from "@/lib/security";
 import { QueryBuilder } from "@/lib/db/query";
 import type { AppUser, DbClient, DbResult } from "@/lib/db/types";
 
@@ -8,9 +9,10 @@ const IDENT = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 export function createDbClient(options: {
   user: AppUser | null;
   mode: "user" | "admin";
+  run?: QueryRunner;
 }): DbClient {
   const run =
-    options.mode === "admin" ? adminRunner : userRunner(options.user?.id ?? null);
+    options.run ?? (options.mode === "admin" ? adminRunner : userRunner(options.user?.id ?? null));
 
   return {
     from(table: string) {
@@ -59,11 +61,11 @@ export function createDbClient(options: {
         if (!attrs.password) {
           return { data: { user: options.user }, error: null };
         }
-        if (attrs.password.length < 6) {
+        if (!passwordSchema.safeParse(attrs.password).success) {
           return {
             data: { user: null },
             error: {
-              message: "A palavra-passe deve ter pelo menos 6 caracteres.",
+              message: "Use uma senha entre 12 e 128 caracteres.",
               details: null,
             },
           };
@@ -71,7 +73,7 @@ export function createDbClient(options: {
         try {
           const hash = await hashPassword(attrs.password);
           await adminQuery(
-            `UPDATE auth.users SET encrypted_password = $1 WHERE id = $2`,
+            `UPDATE auth.users SET encrypted_password = $1, session_version=session_version+1 WHERE id = $2`,
             [hash, options.user.id]
           );
           return { data: { user: options.user }, error: null };

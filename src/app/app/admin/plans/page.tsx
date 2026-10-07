@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PlanEditRow } from "@/app/app/admin/plans/plan-edit-row";
+import { PRO_PLAN, TRIAL_DAYS, TRIAL_MAX_WORKSPACES, proMonthlyPriceLabel } from "@/lib/plans";
 
 export default async function AdminPlansPage() {
   const supabase = await createClient();
@@ -21,8 +22,9 @@ export default async function AdminPlansPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        O plano Trial é atribuído automaticamente a novos espaços. O plano
-        Profissional representa a assinatura paga (preço em reais por mês).
+        O teste grátis de {TRIAL_DAYS} dias é atribuído a cada CRM novo (máximo
+        de {TRIAL_MAX_WORKSPACES}). O plano {PRO_PLAN.name} custa{" "}
+        {proMonthlyPriceLabel()}.
       </p>
       <div className="grid gap-4">
         {(plans ?? []).map((p) => (

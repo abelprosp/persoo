@@ -1,3 +1,4 @@
+import { pagination } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import { CreateNoteDialog } from "@/components/crm/create-note-dialog";
@@ -51,6 +52,7 @@ export default async function NotesPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
   const sortId = pickSortId(
     NOTES_SORT,
@@ -76,7 +78,7 @@ export default async function NotesPage({
   const schema = ws.ai_schema as Record<string, unknown> | null;
   const noteFields = getCustomFields(schema, "notes");
 
-  let query = supabase.from("notes").select("*").eq("workspace_id", ws.id).eq("active", !showingInactive(sp));
+  let query = supabase.from("notes").select("*", {count:"exact"}).eq("workspace_id", ws.id).eq("active", !showingInactive(sp));
   if (q) {
     const p = `%${q}%`;
     query = query.or(
@@ -85,7 +87,8 @@ export default async function NotesPage({
   }
   query = query.order(sortOpt.column, { ascending: sortOpt.ascending });
 
-  const { data: rows } = await query;
+  const { data: rows, count, error } = await query.order("id",{ascending:true}).range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar os registros.");
   const list = rows ?? [];
 
   return (
@@ -150,7 +153,7 @@ export default async function NotesPage({
         )}
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-white">
-        <DataTableFooter total={list.length} />
+        <DataTableFooter total={count ?? list.length} page={page} pageSize={pageSize} params={sp} />
       </div>
     </div>
   );

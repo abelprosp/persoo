@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { CrmSidebar } from "@/components/crm/crm-sidebar";
+import { ProTrialDialog } from "@/components/crm/pro-trial-dialog";
 import { PersooLogo } from "@/components/crm/persoo-logo";
 import type { WorkspaceOption } from "@/components/crm/workspace-switcher";
 import type { SidebarNavItem } from "@/lib/ai-schema";
@@ -15,6 +16,8 @@ type Props = {
   navItems: SidebarNavItem[];
   /** Mostra atalho para /app/admin (super admin). */
   showAdminNav?: boolean;
+  /** Teste de 7 dias terminou e ainda não há plano Pro ativo. */
+  showProPopup?: boolean;
   children: React.ReactNode;
 };
 
@@ -24,6 +27,7 @@ export function CrmAppShell({
   userLabel,
   navItems,
   showAdminNav = false,
+  showProPopup = false,
   children,
 }: Props) {
   return (
@@ -54,6 +58,7 @@ export function CrmAppShell({
         <div className="min-h-[calc(100vh-3rem)] p-6 md:min-h-screen md:p-8">
           {children}
         </div>
+        {showProPopup ? <ProTrialDialog /> : null}
       </SidebarInset>
     </SidebarProvider>
   );

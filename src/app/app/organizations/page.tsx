@@ -1,3 +1,4 @@
+import { pagination } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import {
@@ -13,7 +14,6 @@ import {
   type ListSortOption,
 } from "@/components/crm/page-toolbar";
 import { DataTableFooter } from "@/components/crm/table-footer";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -86,6 +86,7 @@ export default async function OrganizationsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
   const hide = parseHideSet(sp.hide);
   const sortId = pickSortId(
@@ -136,7 +137,7 @@ export default async function OrganizationsPage({
   const onlyInactive = showingInactive(sp);
   let query = supabase
     .from("organizations")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("workspace_id", ws.id)
     .eq("active", !onlyInactive);
   if (q) {
@@ -145,7 +146,8 @@ export default async function OrganizationsPage({
   }
   query = query.order(sortOpt.column, { ascending: sortOpt.ascending });
 
-  const { data: rows } = await query;
+  const { data: rows, count, error } = await query.order("id",{ascending:true}).range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar os registros.");
   const list = rows ?? [];
 
   const vis = (id: string) => !hide.has(id);
@@ -190,9 +192,7 @@ export default async function OrganizationsPage({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead className="w-10">
-                <Checkbox disabled />
-              </TableHead>
+
               {vis("name") ? <TableHead>Organização</TableHead> : null}
               {vis("website") ? <TableHead>Website</TableHead> : null}
               {vis("industry") ? <TableHead>Setor</TableHead> : null}
@@ -226,9 +226,7 @@ export default async function OrganizationsPage({
                 const custom = readRowCustomData(org);
                 return (
                   <TableRow key={org.id}>
-                    <TableCell>
-                      <Checkbox disabled />
-                    </TableCell>
+
                     {vis("name") ? (
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -284,7 +282,7 @@ export default async function OrganizationsPage({
             )}
           </TableBody>
         </Table>
-        <DataTableFooter total={list.length} />
+        <DataTableFooter total={count ?? list.length} page={page} pageSize={pageSize} params={sp} />
       </div>
     </div>
   );

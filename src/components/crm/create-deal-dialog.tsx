@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,12 +73,12 @@ export function CreateDealDialog({
     assignee_name: fieldLabels?.assignee_name ?? "Responsável",
   };
 
-  useEffect(() => {
-    if (open) {
+  const resetKey=JSON.stringify([open, defaultStage]);
+  const [previousKey,setPreviousKey]=useState(resetKey);
+  if(previousKey!==resetKey){setPreviousKey(resetKey); if(open){
       setStage(defaultStage);
       setError(null);
-    }
-  }, [open, defaultStage]);
+  }}
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

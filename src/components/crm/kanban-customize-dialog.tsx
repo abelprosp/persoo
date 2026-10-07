@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Columns3, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -171,12 +171,9 @@ export function KanbanCustomizeDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const propsRef = useRef(props);
-  propsRef.current = props;
-
-  useEffect(() => {
-    if (!open) return;
-    const p = propsRef.current;
+  const [previousOpen,setPreviousOpen]=useState(false);
+  if(previousOpen!==open){setPreviousOpen(open); if(open){
+    const p=props;
     setColumns(p.initialColumns.map((c) => ({ ...c })));
     setNewColTitle("");
     setError(null);
@@ -193,7 +190,7 @@ export function KanbanCustomizeDialog({
       setLeadFields(null);
       setDealFields(null);
     }
-  }, [open]);
+  }}
 
   function moveColumn(index: number, dir: -1 | 1) {
     const j = index + dir;

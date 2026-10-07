@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,12 @@ export function CreateLeadDialog({
     status: fieldLabels?.status ?? "Coluna inicial",
   };
 
-  useEffect(() => {
-    if (open) {
+  const resetKey=JSON.stringify([open, defaultStatus]);
+  const [previousKey,setPreviousKey]=useState(resetKey);
+  if(previousKey!==resetKey){setPreviousKey(resetKey); if(open){
       setStatus(defaultStatus);
       setError(null);
-    }
-  }, [open, defaultStatus]);
+  }}
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

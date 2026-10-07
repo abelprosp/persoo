@@ -43,10 +43,14 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ description }),
         });
-        const aiData = (await aiRes.json().catch(() => ({}))) as { error?: string };
+        const aiData = (await aiRes.json().catch(() => ({}))) as { error?: string; previewId?: string };
         if (!aiRes.ok) {
           setError(aiData.error ?? "Não foi possível personalizar com IA.");
           return;
+        }
+        if (aiData.previewId) {
+          const applied = await fetch("/api/ai/preview", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"apply",previewId:aiData.previewId})});
+          if(!applied.ok){setError("Não foi possível aplicar a configuração. Tente novamente.");return;}
         }
       }
 
@@ -68,7 +72,7 @@ export function OnboardingForm({ initialFullName, initialCompanyName }: Props) {
       }
       router.push("/app/dashboard");
       router.refresh();
-    } finally {
+    } catch { setError("Falha de conexão. Tente novamente."); } finally {
       setLoading(false);
     }
   }

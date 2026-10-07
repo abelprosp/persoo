@@ -50,16 +50,19 @@ export default async function AppLayout({
   const ctx = await getWorkspaceContext(supabase, user.id);
   const showAdminNav = await isSuperAdmin(supabase, user);
 
+  let showProPopup = false;
   if (
     ctx.active &&
     !pathname.startsWith("/app/billing-blocked") &&
+    !pathname.startsWith("/app/settings/billing") &&
     !pathname.startsWith("/app/admin")
   ) {
     const sub = await getWorkspaceSubscription(supabase, ctx.active.id);
     const access = evaluateWorkspaceAccess(sub, { bypass: showAdminNav });
-    if (!access.ok) {
+    if (!access.ok && access.reason !== "trial_expired") {
       redirect(`/app/billing-blocked?reason=${access.reason}`);
     }
+    showProPopup = !access.ok && access.reason === "trial_expired";
   }
 
   const workspaces = ctx.list.map((w) => ({ id: w.id, name: w.name }));
@@ -74,6 +77,7 @@ export default async function AppLayout({
       userLabel={profile?.full_name ?? user.email ?? "Conta"}
       navItems={navItems}
       showAdminNav={showAdminNav}
+      showProPopup={showProPopup}
     >
       {children}
     </CrmAppShell>

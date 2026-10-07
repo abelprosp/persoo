@@ -17,21 +17,21 @@ function appUrl(): string {
 }
 
 function adminUrl(): string {
-  const url = (process.env.DATABASE_URL_ADMIN || process.env.DATABASE_URL)?.trim();
+  const url = process.env.DATABASE_URL_ADMIN?.trim();
   if (!url) throw new Error("DATABASE_URL_ADMIN em falta.");
   return url;
 }
 
 export function getAppPool(): Pool {
   if (!globalForPg.persooAppPool) {
-    globalForPg.persooAppPool = new Pool({ connectionString: appUrl() });
+    globalForPg.persooAppPool = new Pool({ connectionString: appUrl(), max: 10, connectionTimeoutMillis: 5000, statement_timeout: 15000, idleTimeoutMillis: 30000 });
   }
   return globalForPg.persooAppPool;
 }
 
 export function getAdminPool(): Pool {
   if (!globalForPg.persooAdminPool) {
-    globalForPg.persooAdminPool = new Pool({ connectionString: adminUrl() });
+    globalForPg.persooAdminPool = new Pool({ connectionString: adminUrl(), max: 5, connectionTimeoutMillis: 5000, statement_timeout: 15000, idleTimeoutMillis: 30000 });
   }
   return globalForPg.persooAdminPool;
 }
@@ -51,6 +51,7 @@ export type QueryRunner = (
 /** Consultas da aplicação: assume o papel `authenticated` e define auth.uid(). */
 export function userRunner(userId: string | null): QueryRunner {
   return async (text, params = []) => {
+    if (!userId) throw new Error("Não autenticado.");
     const client = await getAppPool().connect();
     let committed = false;
     try {
@@ -83,3 +84,20 @@ export function userRunner(userId: string | null): QueryRunner {
 export const adminRunner: QueryRunner = async (text, params = []) => {
   return adminQuery(text, params);
 };
+
+export async function transaction<T>(userId: string | null, work: (run: QueryRunner) => Promise<T>): Promise<T> {
+  const client = await (userId ? getAppPool() : getAdminPool()).connect();
+  try {
+    await client.query("BEGIN");
+    if (userId) {
+      await client.query("SELECT set_config('request.jwt.claim.sub',$1,true)", [userId]);
+      await client.query("SET LOCAL ROLE authenticated");
+    }
+    const result = await work((sql, params = []) => client.query(sql, params));
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}

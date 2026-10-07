@@ -275,6 +275,8 @@ export class QueryBuilder implements DbQuery {
   private filters: Filter[] = [];
   private orders: { column: string; ascending: boolean }[] = [];
   private limitN: number | null = null;
+  private offsetN = 0;
+  private countExact = false;
   private head = false;
   private payload: unknown = null;
   private returning: string | null = null;
@@ -299,6 +301,7 @@ export class QueryBuilder implements DbQuery {
     this.action = "select";
     this.columns = columns;
     this.head = Boolean(options?.head);
+    this.countExact = options?.count === "exact";
     return this;
   }
 
@@ -348,6 +351,11 @@ export class QueryBuilder implements DbQuery {
   }
   limit(count: number) {
     this.limitN = count;
+    return this;
+  }
+  range(from: number, to: number) {
+    this.offsetN = Math.max(0, Math.floor(from));
+    this.limitN = Math.min(100,Math.max(0,Math.floor(to)-this.offsetN+1));
     return this;
   }
   insert(payload: unknown) {
@@ -437,7 +445,7 @@ export class QueryBuilder implements DbQuery {
           ? ` LIMIT ${Number.isInteger(this.limitN) && this.limitN >= 0 ? this.limitN : 0}`
           : "";
       return {
-        text: `SELECT ${projected} FROM ${table} t${where}${order}${limit}`,
+        text: `SELECT ${projected} FROM ${table} t${where}${order}${limit} OFFSET ${this.offsetN}`,
         params,
       };
     }
@@ -576,7 +584,14 @@ export class QueryBuilder implements DbQuery {
       const rows = result.rows.map((row: QueryResultRow) =>
         normalizeValue(row)
       ) as Record<string, unknown>[];
-      return this.shape(rows);
+      const shaped=this.shape(rows);
+      if(this.action === "select" && this.countExact) {
+        const params:unknown[]=[];
+        const where=this.where(params);
+        const count=await this.run(`SELECT count(*)::int AS count FROM ${ident(this.table)} t${where}`,params);
+        shaped.count=Number(count.rows[0]?.count ?? 0);
+      }
+      return shaped;
     } catch (error) {
       return { data: null, error: toError(error), count: null };
     }

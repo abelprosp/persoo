@@ -1,21 +1,10 @@
+import { appOrigin as configuredOrigin } from "@/lib/security";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { userCanManageWorkspaceBilling } from "@/lib/workspace-billing";
 
-function appOrigin(request: Request): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  const h = request.headers.get("origin") ?? request.headers.get("referer");
-  if (h) {
-    try {
-      return new URL(h).origin;
-    } catch {
-      /* fallthrough */
-    }
-  }
-  return "http://localhost:18473";
-}
+function appOrigin(): string { return configuredOrigin(); }
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
@@ -70,7 +59,7 @@ export async function POST(request: Request) {
   }
 
   const stripe = getStripe();
-  const origin = appOrigin(request);
+  const origin = appOrigin();
   const returnUrl = `${origin}/app/settings/billing`;
 
   const portal = await stripe.billingPortal.sessions.create({

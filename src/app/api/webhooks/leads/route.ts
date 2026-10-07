@@ -9,12 +9,14 @@ import {
   readInboundPayload,
 } from "@/lib/lead-intake";
 import { NextResponse } from "next/server";
+import { rateLimit, requestAddress } from "@/lib/security";
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: intakeCorsHeaders });
 }
 
 export async function POST(request: Request) {
+  if (!await rateLimit("intake:" + requestAddress(request), 60, 60)) return NextResponse.json({ error: "Muitos envios. Aguarde um minuto." }, { status: 429, headers: intakeCorsHeaders });
   const token = readBearerOrApiKey(request);
   if (!token) {
     return NextResponse.json(

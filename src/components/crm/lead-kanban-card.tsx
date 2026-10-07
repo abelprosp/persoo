@@ -51,6 +51,7 @@ export function LeadKanbanCard({
   const router = useRouter();
   const [openDetails, setOpenDetails] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error,setError] = useState("");
   const [pending, setPending] = useState(false);
   const [fullName, setFullName] = useState(item.full_name ?? "");
   const [company, setCompany] = useState(item.company ?? "");
@@ -62,7 +63,8 @@ export function LeadKanbanCard({
   );
 
   async function onSave() {
-    setPending(true);
+    setError(""); setPending(true);
+    try {
     const res = await fetch("/api/kanban/update-card", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -80,9 +82,10 @@ export function LeadKanbanCard({
       }),
     });
     setPending(false);
-    if (!res.ok) return;
+    if (!res.ok) { const data=await res.json(); setError(data.error || "Não foi possível salvar."); return; }
     setOpen(false);
     router.refresh();
+    } catch { setError("Falha de conexão. Tente novamente."); } finally { setPending(false); }
   }
 
   const initial = item.full_name?.charAt(0) ?? "?";
@@ -90,6 +93,9 @@ export function LeadKanbanCard({
   return (
     <div
       className="cursor-pointer rounded-lg border border-border/80 bg-white p-3 shadow-sm"
+      tabIndex={0}
+      aria-label="Abrir detalhes do cartão"
+      onKeyDown={e=>{if(e.target===e.currentTarget && (e.key==="Enter" || e.key===" ")){e.preventDefault();setOpenDetails(true);}}}
       onClick={(e) => {
         if (!e.currentTarget.contains(e.target as Node)) return;
         if (open || openDetails) return;
@@ -152,7 +158,7 @@ export function LeadKanbanCard({
         />
         <Button
           variant="ghost"
-          size="icon"
+          size="icon" aria-label="Editar cartão"
           className="size-7"
           type="button"
           onClick={(e) => {
@@ -169,11 +175,11 @@ export function LeadKanbanCard({
             <DialogTitle>Editar lead</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2">
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome" />
-            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Empresa" />
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" />
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" />
-            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Responsável" />
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} aria-label="Nome" placeholder="Nome" />
+            <Input value={company} onChange={(e) => setCompany(e.target.value)} aria-label="Empresa" placeholder="Empresa" />
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} aria-label="E-mail" placeholder="E-mail" />
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} aria-label="Telefone" placeholder="Telefone" />
+            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} aria-label="Responsável" placeholder="Responsável" />
             <CustomDataEditor
               fields={customFields}
               values={customValues}
@@ -182,7 +188,7 @@ export function LeadKanbanCard({
               }
             />
           </div>
-          <DialogFooter>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}<DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>

@@ -5,10 +5,15 @@ import { getWorkspaceContext } from "@/lib/workspace";
 import { isSuperAdmin } from "@/lib/admin";
 import {
   evaluateWorkspaceAccess,
-  formatPlanPriceEUR,
   subscriptionStatusLabelPt,
   type WorkspaceSubscriptionRow,
 } from "@/lib/subscriptions";
+import { formatPlanPriceBRL, PRO_PLAN } from "@/lib/plans";
+import { isStripeConfigured } from "@/lib/stripe";
+import {
+  resolveStripePriceId,
+  type PlanForCheckout,
+} from "@/lib/workspace-billing";
 import {
   linkButtonOutlineSm,
   linkButtonSecondarySm,
@@ -86,6 +91,19 @@ export default async function BillingSettingsPage({
     myMember?.role === "owner" ||
     myMember?.role === "admin";
 
+  const { data: proPlan } = await supabase
+    .from("subscription_plans")
+    .select("id, slug, name, stripe_price_id")
+    .eq("slug", PRO_PLAN.slug)
+    .eq("active", true)
+    .maybeSingle();
+
+  const checkoutReady = Boolean(
+    isStripeConfigured() &&
+      proPlan &&
+      resolveStripePriceId(proPlan as PlanForCheckout)
+  );
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Faturação</h2>
@@ -96,8 +114,17 @@ export default async function BillingSettingsPage({
       </p>
 
       {canDiscussPlan ? (
-        <BillingStripeClient workspaceName={ws.name} />
-      ) : null}
+        <BillingStripeClient
+          workspaceId={ws.id}
+          workspaceName={ws.name}
+          checkoutReady={checkoutReady}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          O plano {PRO_PLAN.name} custa {formatPlanPriceBRL(PRO_PLAN.priceMonthlyCents)}
+          /mês. Peça ao dono ou a um administrador deste espaço para assinar.
+        </p>
+      )}
 
       <Card className="border-border/80 shadow-sm">
         <CardHeader>
@@ -136,13 +163,13 @@ export default async function BillingSettingsPage({
                 <div>
                   <dt className="text-muted-foreground">Preço indicativo</dt>
                   <dd className="font-medium">
-                    {formatPlanPriceEUR(plan.price_monthly_cents)} / mês
+                    {formatPlanPriceBRL(plan.price_monthly_cents)} / mês
                   </dd>
                 </div>
               ) : null}
               {subRow.trial_ends_at ? (
                 <div>
-                  <dt className="text-muted-foreground">Trial até</dt>
+                  <dt className="text-muted-foreground">Teste grátis até</dt>
                   <dd className="font-medium">
                     {new Date(subRow.trial_ends_at).toLocaleString("pt-PT")}
                   </dd>
@@ -163,16 +190,22 @@ export default async function BillingSettingsPage({
 
           {!access.ok ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50/90 px-4 py-3 text-amber-950">
-              <p className="font-medium">Acesso limitado</p>
+              <p className="font-medium">
+                {access.reason === "trial_expired"
+                  ? "Teste grátis terminado"
+                  : "Acesso limitado"}
+              </p>
               <p className="mt-1 text-xs text-amber-900/90">
                 {access.message}
               </p>
-              <Link
-                href={`/app/billing-blocked?reason=${access.reason}`}
-                className={cn(linkButtonOutlineSm, "mt-3 border-amber-300")}
-              >
-                Ver detalhes
-              </Link>
+              {access.reason === "trial_expired" ? null : (
+                <Link
+                  href={`/app/billing-blocked?reason=${access.reason}`}
+                  className={cn(linkButtonOutlineSm, "mt-3 border-amber-300")}
+                >
+                  Ver detalhes
+                </Link>
+              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">

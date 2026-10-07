@@ -5,7 +5,6 @@ CREATE ROLE authenticated NOLOGIN;
 
 CREATE ROLE persoo_app
   LOGIN
-  PASSWORD 'persoo_app'
   NOSUPERUSER
   NOBYPASSRLS
   NOCREATEDB

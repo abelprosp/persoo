@@ -7,6 +7,7 @@ import {
   readInboundPayload,
 } from "@/lib/lead-intake";
 import { NextResponse } from "next/server";
+import { rateLimit, requestAddress } from "@/lib/security";
 
 type Params = { params: Promise<{ publicId: string }> };
 
@@ -15,6 +16,7 @@ export function OPTIONS() {
 }
 
 export async function POST(request: Request, { params }: Params) {
+  if (!await rateLimit("form:" + requestAddress(request), 60, 60)) return NextResponse.json({ error: "Muitos envios. Aguarde um minuto." }, { status: 429, headers: intakeCorsHeaders });
   const { publicId } = await params;
   const admin = createAdminClient();
   const { data: form, error } = await admin

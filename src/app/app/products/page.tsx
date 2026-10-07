@@ -1,3 +1,4 @@
+import { pagination } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import {
@@ -14,7 +15,6 @@ import {
   type ListSortOption,
 } from "@/components/crm/page-toolbar";
 import { DataTableFooter } from "@/components/crm/table-footer";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -70,6 +70,7 @@ export default async function ProductsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const q = sanitizeIlikeTerm(typeof sp.q === "string" ? sp.q : "");
   const sortId = pickSortId(
     PRODUCT_SORT,
@@ -108,7 +109,7 @@ export default async function ProductsPage({
 
   let query = supabase
     .from("products")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("workspace_id", ws.id)
     .eq("active", !showingInactive(sp));
   if (q) {
@@ -117,10 +118,11 @@ export default async function ProductsPage({
   }
   query = query.order(sortOpt.column, { ascending: sortOpt.ascending });
 
-  const { data: rows } = await query;
+  const { data: rows, count, error } = await query.order("id",{ascending:true}).range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar os registros.");
   const list = rows ?? [];
 
-  const colCount = 6 + extraCols.length; // checkbox + 5 fixas + extras
+  const colCount = 5 + extraCols.length; // checkbox + 5 fixas + extras
 
   return (
     <div className="space-y-4">
@@ -152,9 +154,7 @@ export default async function ProductsPage({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead className="w-10">
-                <Checkbox disabled />
-              </TableHead>
+
               <TableHead>{lblName}</TableHead>
               <TableHead>{lblSku}</TableHead>
               <TableHead className="max-w-[200px]">{lblDesc}</TableHead>
@@ -180,9 +180,7 @@ export default async function ProductsPage({
                 const custom = readRowCustomData(row);
                 return (
                   <TableRow key={row.id}>
-                    <TableCell>
-                      <Checkbox disabled />
-                    </TableCell>
+
                     <TableCell>
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium">{row.name}</span>
@@ -221,7 +219,7 @@ export default async function ProductsPage({
             )}
           </TableBody>
         </Table>
-        <DataTableFooter total={list.length} />
+        <DataTableFooter total={count ?? list.length} page={page} pageSize={pageSize} params={sp} />
       </div>
     </div>
   );

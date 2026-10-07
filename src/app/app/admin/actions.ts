@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSuperAdmin } from "@/lib/admin";
 import { revalidatePath } from "next/cache";
 import type { AppUser, DbClient } from "@/lib/db/types";
+import { TRIAL_DAYS } from "@/lib/plans";
 
 async function adminSupabase(): Promise<{
   supabase: DbClient | null;
@@ -71,7 +72,7 @@ export async function assignWorkspaceSubscription(
   if (mode === "trial") {
     status = "trialing";
     const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() + Math.max(1, Number(plan.trial_days) || 14));
+    d.setUTCDate(d.getUTCDate() + Math.max(1, Number(plan.trial_days) || TRIAL_DAYS));
     trial_ends_at = d.toISOString();
   } else {
     status = "active";
@@ -92,6 +93,7 @@ export async function assignWorkspaceSubscription(
     trial_ends_at,
     current_period_end,
     updated_at: now.toISOString(),
+    ...(mode === "trial" ? { trial_started_at: now.toISOString() } : {}),
   };
 
   if (existing) {

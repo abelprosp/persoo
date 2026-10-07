@@ -3,10 +3,11 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: persoo
-      POSTGRES_PASSWORD: persoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Configure APP_DB_PASSWORD}
       POSTGRES_DB: persoo
     ports:
-      - "18432:5432"
+      - "127.0.0.1:18432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/00_auth.sql:/docker-entrypoint-initdb.d/00_auth.sql:ro
@@ -26,6 +27,11 @@ services:
       - ./supabase/migrations/014_lead_intake.sql:/docker-entrypoint-initdb.d/23_014_lead_intake.sql:ro
       - ./supabase/migrations/015_bi_export.sql:/docker-entrypoint-initdb.d/24_015_bi_export.sql:ro
       - ./supabase/migrations/016_soft_delete.sql:/docker-entrypoint-initdb.d/25_016_soft_delete.sql:ro
+      - ./supabase/migrations/017_security_and_integrity.sql:/docker-entrypoint-initdb.d/26_017_security_and_integrity.sql:ro
+      - ./supabase/migrations/018_trial_seven_days_and_pro.sql:/docker-entrypoint-initdb.d/27_018_trial_seven_days_and_pro.sql:ro
+      - ./supabase/migrations/019_sales_operations.sql:/docker-entrypoint-initdb.d/28_019_sales_operations.sql:ro
+      - ./supabase/migrations/020_revenue_management.sql:/docker-entrypoint-initdb.d/29_020_revenue_management.sql:ro
+      - ./docker/postgres/98_password.sh:/docker-entrypoint-initdb.d/98_password.sh:ro
       - ./docker/postgres/99_grants.sql:/docker-entrypoint-initdb.d/99_grants.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U persoo -d persoo"]
@@ -36,15 +42,36 @@ services:
   app:
     build: .
     ports:
-      - "18473:3000"
+      - "127.0.0.1:18473:3000"
     environment:
-      DATABASE_URL: postgresql://persoo_app:persoo_app@postgres:5432/persoo
-      DATABASE_URL_ADMIN: postgresql://persoo:persoo@postgres:5432/persoo
-      AUTH_SECRET: persoo-docker-dev-secret
-      NEXT_PUBLIC_APP_URL: https://app.persoocrm.com
+      DATABASE_URL: ${DOCKER_DATABASE_URL:?Configure DOCKER_DATABASE_URL}
+      DATABASE_URL_ADMIN: ${DOCKER_DATABASE_URL_ADMIN:?Configure DOCKER_DATABASE_URL_ADMIN}
+      AUTH_SECRET: ${AUTH_SECRET:?Configure AUTH_SECRET}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Configure NEXT_PUBLIC_APP_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_PRICE_ID_PRO: ${STRIPE_PRICE_ID_PRO:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
       AUTH_COOKIE_SECURE: "true"
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      WHATSAPP_TOKEN_KEY: ${WHATSAPP_TOKEN_KEY:?Configure WHATSAPP_TOKEN_KEY}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v25.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  automation-worker:
+    build: .
+    command: ["node", "scripts/automation-worker.mjs"]
+    environment:
+      DATABASE_URL_ADMIN: ${DOCKER_DATABASE_URL_ADMIN:?Configure DOCKER_DATABASE_URL_ADMIN}
+      WHATSAPP_TOKEN_KEY: ${WHATSAPP_TOKEN_KEY:?Configure WHATSAPP_TOKEN_KEY}
     depends_on:
       postgres:
         condition: service_healthy

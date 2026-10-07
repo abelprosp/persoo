@@ -95,7 +95,7 @@ export function DashboardToolbar({ days, team, prefs, children }: Props) {
             <SelectValue placeholder="Utilizador" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="sales">Equipa de vendas</SelectItem>
+            <SelectItem value="sales">Com responsável</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>

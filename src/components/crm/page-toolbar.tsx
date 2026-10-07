@@ -3,7 +3,6 @@
 import {
   Suspense,
   useCallback,
-  useEffect,
   useState,
   useTransition,
   type ReactNode,
@@ -81,7 +80,7 @@ function KanbanToolbar({ extra }: { extra?: ReactNode }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="outline"
         size="icon"
@@ -139,9 +138,9 @@ function TableToolbarInner({
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftQ, setDraftQ] = useState(() => searchParams.get("q") ?? "");
 
-  useEffect(() => {
-    setDraftQ(searchParams.get("q") ?? "");
-  }, [searchParams]);
+  const queryParam=searchParams.get("q") ?? "";
+  const [previousQuery,setPreviousQuery]=useState(queryParam);
+  if(previousQuery!==queryParam){setPreviousQuery(queryParam);setDraftQ(queryParam);}
 
   const pushParams = useCallback(
     (patch: Record<string, string | null>) => {
@@ -150,6 +149,7 @@ function TableToolbarInner({
         if (v === null || v === "") next.delete(k);
         else next.set(k, v);
       }
+      if ("q" in patch || "sort" in patch) next.delete("page");
       const qs = next.toString();
       router.push(qs ? `${pathname}?${qs}` : pathname);
     },
@@ -204,7 +204,7 @@ function TableToolbarInner({
         className="size-9"
         type="button"
         disabled={refreshing}
-        title="Atualizar lista"
+        title="Atualizar lista" aria-label="Atualizar lista"
         onClick={() => startRefresh(() => router.refresh())}
       >
         <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />

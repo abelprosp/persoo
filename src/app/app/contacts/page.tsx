@@ -1,3 +1,4 @@
+import { pagination } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import {
@@ -14,7 +15,6 @@ import {
   type ListSortOption,
 } from "@/components/crm/page-toolbar";
 import { DataTableFooter } from "@/components/crm/table-footer";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -75,6 +75,7 @@ export default async function ContactsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const qRaw = typeof sp.q === "string" ? sp.q : "";
   const q = sanitizeIlikeTerm(qRaw);
   const hide = parseHideSet(sp.hide);
@@ -116,7 +117,7 @@ export default async function ContactsPage({
 
   let query = supabase
     .from("contacts")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("workspace_id", ws.id)
     .eq("active", !showingInactive(sp));
   if (q) {
@@ -125,7 +126,8 @@ export default async function ContactsPage({
   }
   query = query.order(sortOpt.column, { ascending: sortOpt.ascending });
 
-  const { data: rows } = await query;
+  const { data: rows, count, error } = await query.order("id",{ascending:true}).range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar os registros.");
   const list = rows ?? [];
 
   const { data: orgSelectRows } = await supabase
@@ -191,9 +193,7 @@ export default async function ContactsPage({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead className="w-10">
-                <Checkbox disabled />
-              </TableHead>
+
               {vis("email") ? <TableHead>{lblEmail}</TableHead> : null}
               {vis("phone") ? <TableHead>{lblPhone}</TableHead> : null}
               {vis("organization") ? <TableHead>{lblOrg}</TableHead> : null}
@@ -228,9 +228,7 @@ export default async function ContactsPage({
                 const custom = readRowCustomData(c);
                 return (
                   <TableRow key={c.id}>
-                    <TableCell>
-                      <Checkbox disabled />
-                    </TableCell>
+
                     {vis("email") ? (
                       <TableCell>{c.email ?? "—"}</TableCell>
                     ) : null}
@@ -304,7 +302,7 @@ export default async function ContactsPage({
             )}
           </TableBody>
         </Table>
-        <DataTableFooter total={list.length} />
+        <DataTableFooter total={count ?? list.length} page={page} pageSize={pageSize} params={sp} />
       </div>
     </div>
   );

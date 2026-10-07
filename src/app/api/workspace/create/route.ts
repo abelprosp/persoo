@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { attachTrialToWorkspace } from "@/lib/subscriptions";
+import { isSuperAdmin } from "@/lib/admin";
+import {
+  attachTrialToWorkspace,
+  workspaceCreationLimit,
+} from "@/lib/subscriptions";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/workspace";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -11,6 +15,13 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  if (!(await isSuperAdmin(supabase, user))) {
+    const gate = await workspaceCreationLimit(supabase, user.id);
+    if (!gate.ok) {
+      return NextResponse.json({ error: gate.message }, { status: gate.status });
+    }
   }
 
   const body = await req.json().catch(() => ({}));

@@ -1,21 +1,5 @@
 import { Bell } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export default function NotificationsPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Notificações</h1>
-      <Card className="border-border/80 bg-white shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="size-5" />
-            Centro de alertas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Ainda não há notificações. Eventos de CRM e lembretes de IA aparecerão aqui.
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+import { workspaceAccess } from "@/lib/access";
+import { adminQuery } from "@/lib/db/pool";
+import { NotificationList } from "./notification-list";
+export default async function NotificationsPage(){const {workspace,user}=await workspaceAccess();const result=await adminQuery("SELECT id,title,href,read_at,created_at FROM crm_notifications WHERE workspace_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 100",[workspace.id,user.id]);return <div className="space-y-6"><header><h1 className="text-2xl font-semibold tracking-tight">Notificações</h1><p className="text-sm text-muted-foreground">Acompanhamentos, alertas e tarefas gerados pelas regras do CRM.</p></header><section className="rounded-xl border border-border/80 bg-white shadow-sm"><div className="flex items-center gap-2 border-b p-5"><Bell className="size-5"/><h2 className="font-semibold">Centro de alertas</h2></div><NotificationList initial={result.rows as {id:string;title:string;href:string;read_at:string|null;created_at:string}[]}/></section><p className="text-xs text-muted-foreground">As notificações não enviam mensagens externas. Abra o registro para agir e marque o alerta como lido.</p></div>}

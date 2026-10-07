@@ -1,5 +1,7 @@
 "use client";
 
+import { safeRedirect } from "@/lib/safe-redirect";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,7 +21,7 @@ import { PersooLogo } from "@/components/crm/persoo-logo";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/app/dashboard";
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    try {
     const supabase = createClient();
     const { error: err } = await supabase.auth.signInWithPassword({
       email,
@@ -41,6 +44,7 @@ export function LoginForm() {
     }
     router.push(redirectTo);
     router.refresh();
+    } catch { setError("Falha de conexão. Tente novamente."); } finally { setLoading(false); }
   }
 
   return (
@@ -60,7 +64,7 @@ export function LoginForm() {
         <CardHeader>
           <CardTitle>Entrar</CardTitle>
           <CardDescription>
-            Use o e-mail e a palavra-passe da sua conta.
+            Use o e-mail e a senha da sua conta.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -77,8 +81,8 @@ export function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Palavra-passe</Label>
-              <Input
+              <Label htmlFor="password">Senha</Label>
+              <PasswordInput
                 id="password"
                 type="password"
                 autoComplete="current-password"
@@ -100,9 +104,10 @@ export function LoginForm() {
               {loading ? "A entrar…" : "Entrar"}
             </Button>
           </form>
+          <Link href="/recover" className="mt-4 block text-center text-sm underline">Esqueci minha senha</Link>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Ainda não tem conta?{" "}
-            <Link href="/signup" className="font-medium text-violet-700 underline">
+            <Link href={`/signup?redirect=${encodeURIComponent(redirectTo)}`} className="font-medium text-violet-700 underline">
               Criar conta
             </Link>
           </p>

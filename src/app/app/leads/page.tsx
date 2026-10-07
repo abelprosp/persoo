@@ -1,3 +1,5 @@
+import { pagination } from "@/lib/pagination";
+import { DataTableFooter } from "@/components/crm/table-footer";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import { getCustomFields, getEntityLabel } from "@/lib/ai-schema";
@@ -15,9 +17,10 @@ import { redirect } from "next/navigation";
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ inativos?: string }>;
+  searchParams: Promise<{ inativos?: string; page?: string; size?: string }>;
 }) {
   const sp = await searchParams;
+  const {page,pageSize,offset}=pagination(sp);
   const onlyInactive = showingInactive(sp);
   const supabase = await createClient();
   const {
@@ -40,11 +43,12 @@ export default async function LeadsPage({
     status: getEntityLabel(schema, "leads", "status", "Coluna inicial"),
   };
 
-  const { data: leads } = await supabase
+  const { data: leads, count, error } = await supabase
     .from("leads")
-    .select("*")
+    .select("*",{count:"exact"})
     .eq("workspace_id", ws.id)
-    .eq("active", !onlyInactive);
+    .eq("active", !onlyInactive).order("updated_at",{ascending:false}).order("id").range(offset,offset+pageSize-1);
+  if(error) throw new Error("Não foi possível carregar.");
 
   const items = leads ?? [];
   const byCol: Record<string, Record<string, unknown>[]> = {};
@@ -69,7 +73,7 @@ export default async function LeadsPage({
   const leadCardVisibility = getLeadKanbanCardVisibility(schema);
 
   return (
-    <LeadsPageClient
+    <div className="space-y-4"><p className="text-xs text-muted-foreground">Cartões desta página. Use a paginação para acessar os demais registros.</p><LeadsPageClient
       kanbanColumns={kanbanColumns}
       kanbanEditableColumns={kanbanEditableColumns}
       createStatusOptions={createStatusOptions}
@@ -78,6 +82,6 @@ export default async function LeadsPage({
       customFields={leadCustomFields}
       fieldLabels={leadFieldLabels}
       cardVisibility={leadCardVisibility}
-    />
+    /><DataTableFooter total={count ?? 0} page={page} pageSize={pageSize} params={sp}/></div>
   );
 }

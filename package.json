@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "db:maintenance": "node --env-file-if-exists=.env scripts/maintenance.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -24,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "pg": "^8.23.1",

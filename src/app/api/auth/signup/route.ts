@@ -1,53 +1,24 @@
 import { hashPassword } from "@/lib/auth/password";
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/auth/session";
 import { adminQuery } from "@/lib/db/pool";
+import { credentialsSchema, passwordSchema, readJson, rateLimit, requestAddress } from "@/lib/security";
+import { z } from "zod";
 import { NextResponse } from "next/server";
-
+const schema = credentialsSchema.extend({ password: passwordSchema, fullName: z.string().trim().min(2).max(120) });
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as {
-    email?: string;
-    password?: string;
-    fullName?: string;
-  } | null;
-  const email = body?.email?.trim().toLowerCase() ?? "";
-  const password = body?.password ?? "";
-  const fullName = body?.fullName?.trim() ?? "";
-
-  if (!email || !email.includes("@")) {
-    return NextResponse.json({ error: "Indique um e-mail válido." }, { status: 400 });
-  }
-  if (password.length < 6) {
-    return NextResponse.json(
-      { error: "A palavra-passe deve ter pelo menos 6 caracteres." },
-      { status: 400 }
-    );
-  }
-
   try {
+    if (!await rateLimit(`signup:${requestAddress(request)}`, 5, 3600)) return NextResponse.json({ error: "Aguarde antes de criar outra conta." }, { status: 429 });
+    const parsed = schema.safeParse(await readJson(request, 4096).catch(() => null));
+    if (!parsed.success) return NextResponse.json({ error: "Informe nome, e-mail válido e senha de 12 a 128 caracteres." }, { status: 400 });
+    const { email, password, fullName } = parsed.data;
     const hash = await hashPassword(password);
-    const created = await adminQuery(
-      `INSERT INTO auth.users (email, encrypted_password, raw_user_meta_data)
-       VALUES ($1, $2, $3::jsonb)
-       RETURNING id, email`,
-      [email, hash, JSON.stringify({ full_name: fullName })]
-    );
-    const user = created.rows[0] as { id: string; email: string };
-    const token = await signSession({ id: user.id, email: user.email });
+    const created = await adminQuery("INSERT INTO auth.users(email,encrypted_password,raw_user_meta_data) VALUES($1,$2,$3::jsonb) RETURNING id,email", [email, hash, JSON.stringify({ full_name: fullName })]);
+    const token = await signSession(created.rows[0]);
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
     return response;
   } catch (error) {
-    const code =
-      error && typeof error === "object" && "code" in error
-        ? String((error as { code?: string }).code ?? "")
-        : "";
-    if (code === "23505") {
-      return NextResponse.json(
-        { error: "Já existe uma conta com este e-mail." },
-        { status: 409 }
-      );
-    }
-    const message = error instanceof Error ? error.message : "Falha ao criar conta";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("auth.signup", error);
+    return NextResponse.json({ error: "Não foi possível criar a conta. Se já possui cadastro, entre ou recupere sua senha." }, { status: 400 });
   }
 }

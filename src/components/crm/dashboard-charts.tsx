@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { formatBRL } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type SalesTrendPoint = {
@@ -22,9 +23,11 @@ export type SalesTrendPoint = {
 type Props = {
   /** Série temporal agregada no servidor; vazio = estado sem dados */
   trendData?: SalesTrendPoint[];
+  revenue?: number;
+  forecast?: number;
 };
 
-export function DashboardCharts({ trendData = [] }: Props) {
+export function DashboardCharts({ trendData = [], revenue = 0, forecast = 0 }: Props) {
   const hasTrend =
     trendData.length > 0 &&
     trendData.some(
@@ -58,7 +61,7 @@ export function DashboardCharts({ trendData = [] }: Props) {
                 <YAxis
                   tick={{ fontSize: 12 }}
                   domain={[0, Math.ceil(maxY * 1.15)]}
-                  allowDecimals
+                  allowDecimals={false}
                 />
                 <Tooltip />
                 <Legend />
@@ -102,11 +105,11 @@ export function DashboardCharts({ trendData = [] }: Props) {
             Receita prevista
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Projetado vs real com base na probabilidade do negócio
+            Receita realizada no período e previsão para os próximos 30 dias
           </p>
         </CardHeader>
         <CardContent className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-          Ligue dados de negócios para preencher este gráfico
+          <dl className="space-y-5 text-center"><div><dt>Receita realizada</dt><dd className="text-3xl font-semibold text-foreground">{formatBRL(revenue)}</dd></div><div><dt>Previsão ponderada</dt><dd className="text-3xl font-semibold text-foreground">{formatBRL(forecast)}</dd></div><p className="max-w-sm text-xs">Soma do valor × probabilidade dos negócios abertos com fechamento previsto nos próximos 30 dias. Não representa receita garantida.</p></dl>
         </CardContent>
       </Card>
     </div>

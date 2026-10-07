@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -72,13 +72,13 @@ export function CreateTaskDialog({
     assignee_name: fieldLabels?.assignee_name ?? "Atribuído",
   };
 
-  useEffect(() => {
-    if (open) {
+  const resetKey=JSON.stringify([open, defaultStatus, defaultDueAt]);
+  const [previousKey,setPreviousKey]=useState(resetKey);
+  if(previousKey!==resetKey){setPreviousKey(resetKey); if(open){
       setStatus(defaultStatus);
       setDueAt(defaultDueAt);
       setError(null);
-    }
-  }, [open, defaultStatus, defaultDueAt]);
+  }}
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

@@ -5,18 +5,22 @@ export type DbError = {
 };
 
 export type DbResult = {
+  // The compatibility query builder accepts projections at runtime. Narrow at DTO boundaries.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
   error: DbError | null;
   count: number | null;
 };
 
 export type ListResult = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Runtime SQL projections; callers narrow DTOs.
   data: any[] | null;
   error: DbError | null;
   count: number | null;
 };
 
 export type OneResult = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Runtime SQL projections; callers narrow DTOs.
   data: any;
   error: DbError | null;
   count: number | null;
@@ -39,6 +43,7 @@ export interface DbQuery extends PromiseLike<ListResult> {
   or(filters: string): DbQuery;
   order(column: string, options?: { ascending?: boolean }): DbQuery;
   limit(count: number): DbQuery;
+  range(from: number, to: number): DbQuery;
   insert(payload: unknown): DbQuery;
   update(payload: unknown): DbQuery;
   upsert(payload: unknown, options?: { onConflict?: string }): DbQuery;
